@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>主題清單</title>
+    <!-- Ionic CDN -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"
+    />
+    <style>
+      .item-content {
+        width: 100%;
+      }
+      .item-title {
+        font-weight: bold;
+        margin: 0.25rem 0;
+      }
+      .item-subtitle {
+        color: var(--ion-color-medium);
+        font-size: 0.9em;
+      }
+      .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <ion-app>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>主題清單</ion-title>
+        </ion-toolbar>
+        <ion-searchbar placeholder="搜尋..."></ion-searchbar>
+        <ion-item>
+          <ion-select label="分類" interface="popover">
+            <ion-select-option value="">全部</ion-select-option>
+            <!-- 根據主題加入分類選項 -->
+          </ion-select>
+        </ion-item>
+      </ion-header>
+
+      <ion-content>
+        <ion-list>
+          <!-- 清單項目範本 -->
+          <ion-item class="list-item">
+            <div class="item-content">
+              <div class="item-title">標題</div>
+              <div class="item-subtitle">副標題</div>
+              <div class="item-details">詳細資訊</div>
+              <div class="tag-container">
+                <ion-chip size="small">分類</ion-chip>
+                <!-- 標籤 -->
+              </div>
+            </div>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-app>
+  </body>
+  <script>
+    // 初始化資料
+    let items = [
+      /* 至少 20 筆資料 */
+    ];
+
+    // 更新清單顯示
+    function updateList() {
+      const list = document.querySelector("ion-list");
+      const template = document.querySelector(".list-item");
+      list.textContent = "";
+
+      // 根據搜尋和過濾條件更新清單
+      // ...
+    }
+
+    const searchbar = document.querySelector("ion-searchbar");
+    searchbar.addEventListener("ionInput", (event) => {
+      // 實作搜尋邏輯
+      updateList();
+    });
+
+    const categorySelect = document.querySelector("ion-select");
+    categorySelect.addEventListener("ionChange", (event) => {
+      // 實作分類過濾邏輯
+      updateList();
+    });
+  </script>
+</html>
