@@ -297,12 +297,72 @@
     // 更新清單顯示
     function updateList() {
       const list = document.querySelector("ion-list");
-      const template = document.querySelector(".list-item");
-      list.textContent = "";
+      list.innerHTML = ""; // 清空列表
 
-      // 根據搜尋和過濾條件更新清單
-      // ...
+      // 取得搜尋和分類條件
+      const searchbar = document.querySelector("ion-searchbar");
+      const categorySelect = document.querySelector("ion-select");
+      const currentSearch = (searchbar.value || "").trim().toLowerCase();
+      const currentArea = categorySelect.value;
+
+      // 過濾資料：同時滿足搜尋和地區條件
+      const filteredItems = items.filter((item) => {
+        // 地區過濾：如果有選中地區，只顯示該地區景點
+        const matchArea = currentArea ? item.area === currentArea : true;
+        // 搜尋過濾：名稱/地區/特色包含搜尋詞（不分大小寫）
+        const matchSearch = currentSearch
+          ? item.name.toLowerCase().includes(currentSearch) ||
+            item.area.toLowerCase().includes(currentSearch) ||
+            item.feature.toLowerCase().includes(currentSearch)
+          : true;
+        return matchArea && matchSearch;
+      });
+
+      // 渲染過濾後的景點
+      filteredItems.forEach((item) => {
+        const listItem = document.createElement("ion-item");
+        listItem.className = "list-item";
+        listItem.innerHTML = `
+      <div class="item-content">
+        <!-- 景點圖片 -->
+        <img src="${item.image}" alt="${item.name}" style="width:100%; max-height:30rem; object-fit:cover; border-radius:3%; margin:1rem;">
+        <!-- 景點名稱 -->
+        <div class="item-title">${item.name}</div>
+        <!-- 地區 -->
+        <div class="item-subtitle">地區：${item.area}</div>
+        <!-- 開放時間和特色 -->
+        <div class="item-details">
+          <p>開放時間：${item.openTime}</p>
+          <p>特色：${item.feature}</p>
+        </div>
+        <!-- 標籤（地區）和影片按鈕 -->
+        <div class="tag-container">
+          <ion-chip size="small">${item.area}</ion-chip>
+          <a href="${item.video}" target="_blank" style="text-decoration:none;">
+            <ion-chip size="small" color="primary">
+              <ion-icon name="play" slot="start"></ion-icon>
+              導覽影片
+            </ion-chip>
+          </a>
+        </div>
+      </div>
+    `;
+        list.appendChild(listItem);
+      });
+
+      // 如果沒有結果顯示提示
+      if (filteredItems.length === 0) {
+        const emptyItem = document.createElement("ion-item");
+        emptyItem.innerHTML = `<div class="item-content" style="text-align:center; padding:1rem;">沒有找到符合條件的景點</div>`;
+        list.appendChild(emptyItem);
+      }
     }
+
+    // 初始化分類選項
+    populateCategories();
+
+    // 初始顯示
+    updateList();
 
     const searchbar = document.querySelector("ion-searchbar");
     searchbar.addEventListener("ionInput", (event) => {
