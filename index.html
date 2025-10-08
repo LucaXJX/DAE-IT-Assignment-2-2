@@ -261,6 +261,40 @@
     ];
 
     // 更新清單顯示
+    // 取得所有分類（地區）並加入選項
+    function populateCategories() {
+      const categorySelect = document.querySelector("ion-select");
+      // 取得所有唯一地區
+      const areas = Array.from(new Set(items.map((item) => item.area)));
+      areas.forEach((area) => {
+        const option = document.createElement("ion-select-option");
+        option.value = area;
+        option.textContent = area;
+        categorySelect.appendChild(option);
+      });
+    }
+
+    // 根據搜尋和分類過濾資料
+    function getFilteredItems() {
+      const searchbar = document.querySelector("ion-searchbar");
+      const categorySelect = document.querySelector("ion-select");
+      const keyword = (searchbar.value || "").trim();
+      const category = categorySelect.value;
+
+      return items.filter((item) => {
+        // 搜尋條件：標題、副標題、詳細資訊
+        const matchKeyword =
+          !keyword ||
+          item.name.includes(keyword) ||
+          item.area.includes(keyword) ||
+          item.feature.includes(keyword);
+        // 分類條件
+        const matchCategory = !category || item.area === category;
+        return matchKeyword && matchCategory;
+      });
+    }
+
+    // 更新清單顯示
     function updateList() {
       const list = document.querySelector("ion-list");
       const template = document.querySelector(".list-item");
