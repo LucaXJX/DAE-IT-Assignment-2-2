@@ -92,6 +92,56 @@
           font-size: 0.75rem; /* 缩小标签字体 */
         }
       }
+      /* 图片容器和加载失败文字的样式 */
+      .image-container {
+        position: relative; /* 关键：让子元素可以绝对定位 */
+        width: 100%;
+        max-height: 200px;
+        border-radius: 8px;
+        overflow: hidden; /* 隐藏超出容器的内容 */
+        margin-bottom: 0.5rem;
+        background-color: #f0f0f0; /* 给容器一个浅灰色背景 */
+      }
+
+      .item-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* 保持图片比例并填满容器 */
+        display: block; /* 消除图片底部的小空隙 */
+      }
+
+      .image-fallback-text {
+        /* 绝对定位，让文字覆盖在图片（或背景）上 */
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+
+        /* 文字样式 */
+        color: #666;
+        font-size: 1rem;
+        text-align: center;
+
+        /* 垂直居中技巧 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .image-fallback-text {
+        /* 默認隱藏失敗提示文字 */
+        display: none;
+      }
+
+      .image-container.error .image-fallback-text {
+        /* 圖片加載失敗時顯示文字 */
+        display: flex;
+      }
+
+      .image-container.error .item-image {
+        /* 圖片加載失敗時隱藏圖片（避免破碎圖標） */
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -380,8 +430,13 @@
         listItem.innerHTML = `
       <div class="item-content">
         <!-- 景點圖片 -->
-        <img src="${item.image}" alt="${item.name}" style="width:100%; max-height:30rem; object-fit:cover; border-radius:3%; margin:1rem;">
-        <!-- 景點名稱 -->
+<div class="image-container">
+  <img src="${item.image}" alt="${item.name}" class="item-image" 
+       onload="this.parentElement.classList.remove('error')"
+       onerror="this.parentElement.classList.add('error')">
+  <div class="image-fallback-text">圖片加載失敗</div>
+</div>
+       <!-- 景點名稱 -->
         <div class="item-title">${item.name}</div>
         <!-- 地區 -->
         <div class="item-subtitle">地區：${item.area}</div>
@@ -393,7 +448,7 @@
         <!-- 標籤（地區）和影片按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" onclick="filterByArea('${item.area}')">${item.area}</ion-chip>
-          <a href="${item.video}" target="_blank" style="text-decoration:none;">
+          <a href="${item.video}" target="_blank" style="tex<img src="${item.image}" alt="${item.name}" style="t-decoration:none;">
             <ion-chip size="small" color="primary">
               <ion-icon name="play" slot="start"></ion-icon>
               導覽影片
