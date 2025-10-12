@@ -19,7 +19,7 @@
     />
     <style>
       .list-item:hover {
-        transform: translateY(-2px); /* 鼠标悬停时轻微上浮 */
+        transform: translateY(-2px); /* 滑鼠懸停時輕微上浮 */
       }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -28,11 +28,11 @@
 
       .list-item {
         --background: #ffffff;
-        border-radius: 12px; /* 更圆润的边角 */
+        border-radius: 12px; /* 更圓潤的邊角 */
         margin: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 添加轻微阴影，更有层次感 */
-        overflow: hidden; /* 确保图片和内容都在圆角内 */
-        transition: transform 0.2s ease; /* 添加点击时的轻微缩放动画 */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 添加輕微陰影，更有層次感 */
+        overflow: hidden; /* 確保圖片和內容都在圓角內 */
+        transition: transform 0.2s ease; /* 添加點擊時的輕微縮放動畫 */
       }
       .item-content {
         width: 100%;
@@ -51,7 +51,7 @@
       .item-details p {
         margin: 6px 0;
         font-size: 0.9rem;
-        line-height: 1.5; /* 增加行高，提高可读性 */
+        line-height: 1.5; /* 增加行高，提高可讀性 */
       }
       .tag-container {
         display: flex;
@@ -60,13 +60,13 @@
         gap: 0.5rem;
         margin: 1rem auto;
       }
-      /* 响应式设计：针对不同屏幕尺寸的优化 */
+      /* 響應式設計：針對不同螢幕尺寸的優化 */
 
-      /* 大屏幕 (例如 iPad, 桌面浏览器) */
+      /* 大螢幕 (例如 iPad, 桌面瀏覽器) */
       @media (min-width: 768px) {
         .list-item {
-          max-width: 800px; /* 限制最大宽度，避免在超宽屏幕上内容过散 */
-          margin: 15px auto; /* 水平居中 */
+          max-width: 800px; /* 限制最大寬度，避免在超寬螢幕上內容過散 */
+          margin: 15px auto; /* 水平置中 */
         }
         .item-title {
           font-size: 1.4rem;
@@ -76,7 +76,7 @@
         }
       }
 
-      /* 小屏幕 (例如 iPhone SE) */
+      /* 小螢幕 (例如 iPhone SE) */
       @media (max-width: 375px) {
         .item-title {
           font-size: 1.1rem;
@@ -89,57 +89,57 @@
           gap: 4px;
         }
         ion-chip {
-          font-size: 0.75rem; /* 缩小标签字体 */
+          font-size: 0.75rem; /* 縮小標籤字體 */
         }
       }
-      /* 图片容器和加载失败文字的样式 */
+      /* 圖片容器和載入失敗文字的樣式 */
       .image-container {
-        position: relative; /* 关键：让子元素可以绝对定位 */
+        position: relative; /* 關鍵：讓子元素可以絕對定位 */
         width: 100%;
         max-height: 200px;
         border-radius: 8px;
-        overflow: hidden; /* 隐藏超出容器的内容 */
+        overflow: hidden; /* 隱藏超出容器的內容 */
         margin-bottom: 0.5rem;
-        background-color: #f0f0f0; /* 给容器一个浅灰色背景 */
+        background-color: #f0f0f0; /* 給容器一個淺灰色背景 */
       }
 
       .item-image {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* 保持图片比例并填满容器 */
-        display: block; /* 消除图片底部的小空隙 */
+        object-fit: cover; /* 保持圖片比例並填滿容器 */
+        display: block; /* 消除圖片底部的小空隙 */
       }
 
       .image-fallback-text {
-        /* 绝对定位，让文字覆盖在图片（或背景）上 */
+        /* 絕對定位，讓文字覆蓋在圖片（或背景）上 */
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
 
-        /* 文字样式 */
+        /* 文字樣式 */
         color: #666;
         font-size: 1rem;
         text-align: center;
 
-        /* 垂直居中技巧 */
+        /* 垂直置中技巧 */
         display: flex;
         justify-content: center;
         align-items: center;
       }
       .image-fallback-text {
-        /* 默認隱藏失敗提示文字 */
+        /* 預設隱藏失敗提示文字 */
         display: none;
       }
 
       .image-container.error .image-fallback-text {
-        /* 圖片加載失敗時顯示文字 */
+        /* 圖片載入失敗時顯示文字 */
         display: flex;
       }
 
       .image-container.error .item-image {
-        /* 圖片加載失敗時隱藏圖片（避免破碎圖標） */
+        /* 圖片載入失敗時隱藏圖片（避免破碎圖標） */
         display: none;
       }
     </style>
@@ -365,8 +365,7 @@
       },
     ];
 
-    // 更新清單顯示
-    // 取得所有分類（地區）並加入選項
+    // 初始化分類選項（地區）
     function populateCategories() {
       const categorySelect = document.querySelector("ion-select");
       // 取得所有唯一地區
@@ -430,13 +429,13 @@
         listItem.innerHTML = `
       <div class="item-content">
         <!-- 景點圖片 -->
-<div class="image-container">
-  <img src="${item.image}" alt="${item.name}" class="item-image" 
-       onload="this.parentElement.classList.remove('error')"
-       onerror="this.parentElement.classList.add('error')">
-  <div class="image-fallback-text">圖片加載失敗</div>
-</div>
-       <!-- 景點名稱 -->
+        <div class="image-container">
+          <img src="${item.image}" alt="${item.name}" class="item-image" 
+               onload="this.parentElement.classList.remove('error')"
+               onerror="this.parentElement.classList.add('error')">
+          <div class="image-fallback-text">圖片載入失敗</div>
+        </div>
+        <!-- 景點名稱 -->
         <div class="item-title">${item.name}</div>
         <!-- 地區 -->
         <div class="item-subtitle">地區：${item.area}</div>
@@ -448,7 +447,8 @@
         <!-- 標籤（地區）和影片按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" onclick="filterByArea('${item.area}')">${item.area}</ion-chip>
-          <a href="${item.video}" target="_blank" style="tex<img src="${item.image}" alt="${item.name}" style="t-decoration:none;">
+          <!-- 導覽影片按鈕 -->
+          <a href="${item.video}" target="_blank" style="text-decoration:none;">
             <ion-chip size="small" color="primary">
               <ion-icon name="play" slot="start"></ion-icon>
               導覽影片
@@ -474,19 +474,21 @@
     // 初始顯示
     updateList();
 
+    // 監聽搜尋框輸入事件
     const searchbar = document.querySelector("ion-searchbar");
     searchbar.addEventListener("ionInput", (event) => {
-      // 實作搜尋邏輯
+      // 執行搜尋邏輯
       updateList();
     });
 
+    // 監聽分類選單變更事件
     const categorySelect = document.querySelector("ion-select");
     categorySelect.addEventListener("ionChange", (event) => {
-      // 實作分類過濾邏輯
+      // 執行分類過濾邏輯
       updateList();
     });
 
-    // 點擊標籤過濾
+    // 點擊標籤過濾（地區）
     function filterByArea(area) {
       // 1. 更新目前選中的地區
       currentArea = area;
