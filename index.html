@@ -142,6 +142,70 @@
         /* 圖片載入失敗時隱藏圖片（避免破碎圖標） */
         display: none;
       }
+
+      /* --- 新增的视频弹窗样式 --- */
+      .video-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none; /* 預設隱藏 */
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+      }
+      .video-modal.active {
+        display: flex; /* 顯示彈窗 */
+      }
+      .modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        background-color: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        max-height: 90vh;
+      }
+      .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .video-container {
+        width: 100%;
+        padding-top: 56.25%; /* 16:9 視頻比例 */
+        position: relative;
+        background-color: #000;
+      }
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      .modal-title {
+        padding: 15px;
+        font-size: 1.2rem;
+        font-weight: bold;
+        background-color: #f5f5f5;
+      }
     </style>
   </head>
   <body>
@@ -187,6 +251,14 @@
         </ion-list>
       </ion-content>
     </ion-app>
+    <!-- --- 以下為新增的视频弹窗 HTML --- -->
+    <div class="video-modal" id="videoModal">
+      <div class="modal-content">
+        <button class="close-btn" id="closeBtn">&times;</button>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="video-container" id="videoContainer"></div>
+      </div>
+    </div>
   </body>
   <!-- 引入簡體轉繁體字對照表 -->
   <script src="cc.js"></script>
@@ -403,6 +475,39 @@
         categorySelect.appendChild(option);
       });
     }
+    // --- 彈窗控制函數 ---
+    // 打开视频弹窗
+    function openVideoModal(videoUrl, title) {
+      const modal = document.getElementById("videoModal");
+      const videoContainer = document.getElementById("videoContainer");
+      const modalTitle = document.getElementById("modalTitle");
+
+      modalTitle.textContent = title;
+
+      // 處理YouTube鏈接，轉換為嵌入格式
+      let embedUrl = videoUrl;
+      if (videoUrl.includes("youtube.com/watch?v=")) {
+        const videoId = videoUrl.split("v=")[1].split("&")[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      } else if (videoUrl.includes("youtu.be/")) {
+        const videoId = videoUrl.split("youtu.be/")[1].split("?")[0];
+        embedUrl = `https://www.youtube.com/embed/${videoId}`;
+      }
+
+      videoContainer.innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+      modal.classList.add("active");
+      document.body.style.overflow = "hidden"; // 防止背景滾動
+    }
+
+    // 关闭视频弹窗
+    function closeVideoModal() {
+      const modal = document.getElementById("videoModal");
+      const videoContainer = document.getElementById("videoContainer");
+
+      videoContainer.innerHTML = ""; // 清空視頻以停止播放
+      modal.classList.remove("active");
+      document.body.style.overflow = ""; // 恢復背景滾動
+    }
 
     // 根據搜尋和分類過濾資料
     function getFilteredItems() {
@@ -476,16 +581,14 @@
           <p>特色：${item.feature}</p>
         </div>
         <!-- 標籤（地區）和影片按鈕 -->
-        <div class="tag-container">
-          <ion-chip size="small" onclick="filterByArea('${item.area}')">${item.area}</ion-chip>
-          <!-- 導覽影片按鈕 -->
-          <a href="${item.video}" target="_blank" style="text-decoration:none;">
-            <ion-chip size="small" color="primary">
+          <div class="tag-container">
+            <ion-chip size="small" onclick="filterByArea('${item.area}')">${item.area}</ion-chip>
+            <!-- 將 <a> 標籤替換為以下 ion-chip -->
+            <ion-chip size="small" color="primary" onclick="openVideoModal('${item.video}', '${item.name} 導覽影片')">
               <ion-icon name="play" slot="start"></ion-icon>
               導覽影片
             </ion-chip>
-          </a>
-        </div>
+          </div>
       </div>
     `;
         list.appendChild(listItem);
@@ -498,12 +601,6 @@
         list.appendChild(emptyItem);
       }
     }
-
-    // 初始化分類選項
-    populateCategories();
-
-    // 初始顯示
-    updateList();
 
     // 監聽搜尋框輸入事件
     const searchbar = document.querySelector("ion-searchbar");
@@ -531,6 +628,31 @@
       // 3. 更新清單顯示
       updateList();
     }
+
+    function initEventListeners() {
+      // 關閉按鈕事件
+      document
+        .getElementById("closeBtn")
+        .addEventListener("click", closeVideoModal);
+
+      // 點擊彈窗外部關閉
+      document
+        .getElementById("videoModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) {
+            // 只有點擊黑色背景時才關閉
+            closeVideoModal();
+          }
+        });
+
+      // 將原有的 searchbar 和 select 的事件監聽移到這裡統一管理
+      const searchbar = document.querySelector("ion-searchbar");
+      searchbar.addEventListener("ionInput", updateList);
+
+      const categorySelect = document.querySelector("ion-select");
+      categorySelect.addEventListener("ionChange", updateList);
+    }
+
     // 新增：繪製地區分佈圖表
     function initAreaChart() {
       // 統計每個地區的景點數量
@@ -599,13 +721,14 @@
         },
       });
     }
-    // 初始化分類選項
-    populateCategories();
+    // 初始化
+    function init() {
+      populateCategories();
+      initAreaChart();
+      updateList();
+      initEventListeners(); // --- 在這裡調用新增的函數 ---
+    }
 
-    // 新增：初始化圖表
-    initAreaChart();
-
-    // 初始顯示
-    updateList();
+    init();
   </script>
 </html>
