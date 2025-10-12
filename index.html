@@ -475,8 +475,9 @@
         categorySelect.appendChild(option);
       });
     }
+
     // --- 彈窗控制函數 ---
-    // 打开视频弹窗
+    // 打開視頻彈窗
     function openVideoModal(videoUrl, title) {
       const modal = document.getElementById("videoModal");
       const videoContainer = document.getElementById("videoContainer");
@@ -499,7 +500,7 @@
       document.body.style.overflow = "hidden"; // 防止背景滾動
     }
 
-    // 关闭视频弹窗
+    // 关闭視頻彈窗
     function closeVideoModal() {
       const modal = document.getElementById("videoModal");
       const videoContainer = document.getElementById("videoContainer");
@@ -629,6 +630,7 @@
       updateList();
     }
 
+    // 初始化事件監聽器
     function initEventListeners() {
       // 關閉按鈕事件
       document
@@ -653,7 +655,7 @@
       categorySelect.addEventListener("ionChange", updateList);
     }
 
-    // 新增：繪製地區分佈圖表
+    // 繪製地區分佈圖表
     function initAreaChart() {
       // 統計每個地區的景點數量
       const areaCount = {};
@@ -721,14 +723,15 @@
         },
       });
     }
+
     // 初始化
     function init() {
       populateCategories();
       initAreaChart();
       updateList();
-      initEventListeners(); // --- 在這裡調用新增的函數 ---
+      initEventListeners(); // --- 調用初始化的函數 ---
     }
 
-    init();
+    init(); // 啟動初始化
   </script>
 </html>
