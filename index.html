@@ -18,6 +18,66 @@
       href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"
     />
     <style>
+      :root {
+        --ion-color-primary: #3880ff; /* Ionic默认主色 */
+        --ion-color-secondary: #0cd1e8;
+        --ion-color-tertiary: #7044ff;
+        --ion-color-light: #f4f5f8;
+        --ion-color-medium: #989aa2;
+        --ion-color-dark: #2d3243;
+        --ion-color-white: #ffffff; /* 新增白色变量统一使用 */
+      }
+      ion-content {
+        --background: linear-gradient(135deg, #f0fff4, #d4edda);
+      }
+      body {
+        font-family: var(--ion-font-family); /* 统一使用Ionic字体变量 */
+        margin: 0; /* 移除默认边距 */
+        padding: 0;
+      }
+      .list-item {
+        --background: rgba(255, 255, 255, 0.85); /* 白色半透明背景 */
+        border-radius: 12px;
+        margin: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.2s ease;
+        padding: 16px;
+        backdrop-filter: blur(4px); /* 毛玻璃效果（增強可讀性） */
+      }
+      .list-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08); /* 懸停時增強陰影 */
+      }
+      ion-chip {
+        --background: var(--ion-color-primary/10); /* 主色透明背景 */
+        --color: var(--ion-color-primary); /* 主色文字 */
+        --border-radius: 12px;
+        --padding-start: 10px;
+        --padding-end: 10px;
+      }
+      ion-chip.color-primary {
+        --background: var(--ion-color-primary);
+        --color: white;
+      }
+      ion-card {
+        --background: var(--ion-color-white);
+        --border-radius: 12px;
+        --box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        margin: 16px;
+      }
+      .item-title {
+        color: var(--ion-color-dark);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0.25rem 0;
+      }
+
+      .item-subtitle {
+        color: var(--ion-color-medium);
+        font-size: 0.9em;
+        margin-bottom: 0.15rem;
+      }
       .list-item:hover {
         transform: translateY(-2px); /* 滑鼠懸停時輕微上浮 */
       }
@@ -36,7 +96,6 @@
       }
       .item-content {
         width: 100%;
-        max-width: 95%;
       }
       .item-title {
         font-size: 1.2rem;
@@ -99,7 +158,7 @@
         max-height: 200px;
         border-radius: 8px;
         overflow: hidden; /* 隱藏超出容器的內容 */
-        margin-bottom: 0.5rem;
+        margin: 0.8rem 0;
         background-color: #f0f0f0; /* 給容器一個淺灰色背景 */
       }
 
@@ -109,7 +168,16 @@
         object-fit: cover; /* 保持圖片比例並填滿容器 */
         display: block; /* 消除圖片底部的小空隙 */
       }
-
+      .item-title,
+      .item-subtitle,
+      .item-details {
+        padding: 0; /* 确保没有额外内边距 */
+      }
+      .item-details p {
+        margin: 6px 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
       .image-fallback-text {
         /* 絕對定位，讓文字覆蓋在圖片（或背景）上 */
         position: absolute;
@@ -212,7 +280,7 @@
     <ion-app>
       <ion-header>
         <ion-toolbar>
-          <ion-title>主題清單</ion-title>
+          <ion-title style="text-align: center">主題清單</ion-title>
         </ion-toolbar>
         <ion-searchbar placeholder="搜尋..."></ion-searchbar>
         <ion-item>
@@ -228,7 +296,7 @@
         <div style="padding: 16px">
           <ion-card>
             <ion-card-header>
-              <ion-card-title>景點地區分佈</ion-card-title>
+              <ion-card-title>景點地區分佈（排名不分先後）</ion-card-title>
             </ion-card-header>
             <ion-card-content>
               <canvas id="areaChart" height="250"></canvas>
