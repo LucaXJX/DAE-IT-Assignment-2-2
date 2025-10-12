@@ -177,6 +177,8 @@
       </ion-content>
     </ion-app>
   </body>
+  <!-- 引入簡體轉繁體字對照表 -->
+  <script src="cc.js"></script>
   <script>
     // 初始化資料
     let items = [
@@ -365,6 +367,17 @@
       },
     ];
 
+    // 簡體字轉繁體字函數
+    function simplifyToTraditional(simplifiedStr) {
+      if (!simplifiedStr) return "";
+      return simplifiedStr
+        .split("")
+        .map((char) => {
+          return simpToTradMap[char] || char; // 沒有對應的字保持原樣
+        })
+        .join("");
+    }
+
     // 初始化分類選項（地區）
     function populateCategories() {
       const categorySelect = document.querySelector("ion-select");
@@ -407,6 +420,8 @@
       const searchbar = document.querySelector("ion-searchbar");
       const categorySelect = document.querySelector("ion-select");
       const currentSearch = (searchbar.value || "").trim().toLowerCase();
+      // 將用戶輸入的簡體字轉換為繁體字
+      const currentSearchTrad = simplifyToTraditional(currentSearch);
       const currentArea = categorySelect.value;
 
       // 過濾資料：同時滿足搜尋和地區條件
@@ -416,8 +431,11 @@
         // 搜尋過濾：名稱/地區/特色包含搜尋詞（不分大小寫）
         const matchSearch = currentSearch
           ? item.name.toLowerCase().includes(currentSearch) ||
+            item.name.includes(currentSearchTrad) ||
             item.area.toLowerCase().includes(currentSearch) ||
-            item.feature.toLowerCase().includes(currentSearch)
+            item.area.includes(currentSearchTrad) ||
+            item.feature.toLowerCase().includes(currentSearch) ||
+            item.feature.includes(currentSearchTrad)
           : true;
         return matchArea && matchSearch;
       });
@@ -430,7 +448,7 @@
       <div class="item-content">
         <!-- 景點圖片 -->
         <div class="image-container">
-          <img src="${item.image}" alt="${item.name}" class="item-image" 
+          <img src="${item.image}" alt="${item.name}" class="item-image"
                onload="this.parentElement.classList.remove('error')"
                onerror="this.parentElement.classList.add('error')">
           <div class="image-fallback-text">圖片載入失敗</div>
