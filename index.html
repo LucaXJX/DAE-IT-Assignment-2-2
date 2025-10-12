@@ -337,7 +337,7 @@
         </div>
         <!-- 標籤（地區）和影片按鈕 -->
         <div class="tag-container">
-          <ion-chip size="small">${item.area}</ion-chip>
+          <ion-chip size="small" onclick="filterByArea('${item.area}')">${item.area}</ion-chip>
           <a href="${item.video}" target="_blank" style="text-decoration:none;">
             <ion-chip size="small" color="primary">
               <ion-icon name="play" slot="start"></ion-icon>
@@ -375,5 +375,18 @@
       // 實作分類過濾邏輯
       updateList();
     });
+
+    // 點擊標籤過濾
+    function filterByArea(area) {
+      // 1. 更新目前選中的地區
+      currentArea = area;
+
+      // 2. 更新分類選單的值
+      const categorySelect = document.querySelector("ion-select");
+      categorySelect.value = area;
+
+      // 3. 更新清單顯示
+      updateList();
+    }
   </script>
 </html>
