@@ -18,17 +18,40 @@
       href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"
     />
     <style>
+      .list-item:hover {
+        transform: translateY(-2px); /* 鼠标悬停时轻微上浮 */
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+      }
+
+      .list-item {
+        --background: #ffffff;
+        border-radius: 12px; /* 更圆润的边角 */
+        margin: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 添加轻微阴影，更有层次感 */
+        overflow: hidden; /* 确保图片和内容都在圆角内 */
+        transition: transform 0.2s ease; /* 添加点击时的轻微缩放动画 */
+      }
       .item-content {
         width: 100%;
         max-width: 95%;
       }
       .item-title {
+        font-size: 1.2rem;
         font-weight: bold;
         margin: 0.25rem 0;
       }
       .item-subtitle {
         color: var(--ion-color-medium);
         font-size: 0.9em;
+        margin-bottom: 0.15rem;
+      }
+      .item-details p {
+        margin: 6px 0;
+        font-size: 0.9rem;
+        line-height: 1.5; /* 增加行高，提高可读性 */
       }
       .tag-container {
         display: flex;
@@ -36,6 +59,38 @@
         width: 100%;
         gap: 0.5rem;
         margin: 1rem auto;
+      }
+      /* 响应式设计：针对不同屏幕尺寸的优化 */
+
+      /* 大屏幕 (例如 iPad, 桌面浏览器) */
+      @media (min-width: 768px) {
+        .list-item {
+          max-width: 800px; /* 限制最大宽度，避免在超宽屏幕上内容过散 */
+          margin: 15px auto; /* 水平居中 */
+        }
+        .item-title {
+          font-size: 1.4rem;
+        }
+        .item-details p {
+          font-size: 1rem;
+        }
+      }
+
+      /* 小屏幕 (例如 iPhone SE) */
+      @media (max-width: 375px) {
+        .item-title {
+          font-size: 1.1rem;
+        }
+        .item-subtitle,
+        .item-details p {
+          font-size: 0.85rem;
+        }
+        .tag-container {
+          gap: 4px;
+        }
+        ion-chip {
+          font-size: 0.75rem; /* 缩小标签字体 */
+        }
       }
     </style>
   </head>
