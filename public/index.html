@@ -655,6 +655,80 @@
       .auth-error .retry-btn:hover {
         background: #d32f2f;
       }
+
+      /* 收藏篩選 Toggle 樣式 */
+      .bookmark-filter-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0 0.75rem;
+        font-size: 0.85rem;
+        color: var(--ion-color-medium);
+        transition: all 0.3s ease;
+        background: rgba(235, 68, 90, 0.05);
+        border-radius: 1.5rem;
+        padding: 0.4rem 0.75rem;
+        margin-left: 0.5rem;
+      }
+
+      .bookmark-filter-container.active {
+        color: #eb445a;
+        background: rgba(235, 68, 90, 0.15);
+        font-weight: 500;
+      }
+
+      .bookmark-filter-container ion-icon {
+        font-size: 1.1rem;
+        transition: color 0.3s ease;
+      }
+
+      .bookmark-filter-container ion-icon {
+        color: #eb445a;
+      }
+
+      .bookmark-filter-container.active ion-icon {
+        color: #eb445a;
+      }
+
+      .bookmark-filter-container ion-toggle {
+        --handle-width: 1.3rem;
+        --handle-height: 1.3rem;
+        --handle-spacing: 0.15rem;
+        --background: rgba(0, 0, 0, 0.1);
+        --background-checked: #eb445a;
+        --handle-background: white;
+        --handle-background-checked: white;
+        zoom: 0.85;
+      }
+
+      .bookmark-filter-label {
+        font-size: 0.85rem;
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      /* 隱藏未登入時的篩選器 */
+      .bookmark-filter-container.hidden {
+        display: none;
+      }
+
+      /* 小螢幕優化 */
+      @media (max-width: 600px) {
+        .bookmark-filter-container {
+          padding: 0.3rem 0.5rem;
+          gap: 0.3rem;
+        }
+
+        .bookmark-filter-label {
+          font-size: 0.75rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .bookmark-filter-label {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -677,6 +751,17 @@
     <ion-app>
       <ion-header>
         <ion-toolbar>
+          <!-- 收藏篩選開關（左側） -->
+          <div
+            slot="start"
+            class="bookmark-filter-container"
+            id="bookmarkFilterContainer"
+          >
+            <ion-icon name="heart"></ion-icon>
+            <span class="bookmark-filter-label">只看收藏</span>
+            <ion-toggle id="bookmarkFilterToggle" color="danger"></ion-toggle>
+          </div>
+
           <ion-title style="text-align: center">公眾景點清單</ion-title>
           <ion-buttons slot="end">
             <!-- 未登入狀態 -->
