@@ -982,6 +982,7 @@ async function updateList(): Promise<void> {
   // 如果沒有結果顯示提示
   if (filteredItems.length === 0 && !isLoading) {
     const emptyItem = document.createElement('ion-item');
+    emptyItem.className = 'empty-state';
     emptyItem.innerHTML = `<div class="item-content" style="text-align:center; padding:1rem;">沒有找到符合條件的景點</div>`;
     list.appendChild(emptyItem);
   }
@@ -989,6 +990,7 @@ async function updateList(): Promise<void> {
   // 添加「載入更多」按鈕（僅在使用 API 數據時顯示）
   if (!useLocalData && filteredItems.length > 0) {
     const loadMoreContainer = document.createElement('div');
+    loadMoreContainer.className = 'load-more-container';
     loadMoreContainer.style.cssText = 'text-align:center; padding:1.5rem;';
 
     if (hasMoreData) {

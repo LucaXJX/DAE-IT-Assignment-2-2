@@ -106,20 +106,77 @@
         margin: 1rem auto;
       }
 
-      /* 響應式設計 */
+      /* 響應式設計：針對不同螢幕尺寸的優化 */
+      
+      /* 預設列表式佈局（手機） */
+      ion-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+      }
+
+      /* 平板橫屏和電腦：網格式佈局 */
       @media (min-width: 768px) {
-        .list-item {
-          max-width: 50rem;
-          margin: 0.9375rem auto;
+        ion-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 1rem;
+          padding: 1rem;
+          max-width: 1400px;
+          margin: 0 auto;
         }
+
+        .list-item {
+          max-width: none;
+          margin: 0;
+          height: 100%;
+        }
+
+        .item-content {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+        .item-title {
+          font-size: 1.3rem;
+        }
+
+        .item-details {
+          flex: 1;
+        }
+
+        .item-details p {
+          font-size: 0.95rem;
+        }
+      }
+
+      /* 大屏幕：更多列 */
+      @media (min-width: 1200px) {
+        ion-list {
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 1.25rem;
+          padding: 1.25rem;
+        }
+
         .item-title {
           font-size: 1.4rem;
         }
+
         .item-details p {
           font-size: 1rem;
         }
       }
 
+      /* 超大屏幕：最多4列 */
+      @media (min-width: 1600px) {
+        ion-list {
+          grid-template-columns: repeat(4, 1fr);
+          max-width: 1800px;
+        }
+      }
+
+      /* 小螢幕 (例如 iPhone SE) */
       @media (max-width: 375px) {
         .item-title {
           font-size: 1.1rem;
@@ -133,6 +190,14 @@
         }
         ion-chip {
           font-size: 0.75rem;
+        }
+      }
+
+      /* 確保載入更多按鈕和空狀態在網格中佔滿寬度 */
+      @media (min-width: 768px) {
+        .load-more-container,
+        .empty-state {
+          grid-column: 1 / -1;
         }
       }
 
@@ -745,5 +810,5 @@
   </script>
 
   <!-- 引入編譯後的 TypeScript 代碼 -->
-  <script src="/dist/main.js"></script>
+  <script src="../dist/main.js"></script>
 </html>
