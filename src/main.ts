@@ -25,6 +25,10 @@ let currentPage = 1;
 let hasMoreData = true;
 let isLoadingMore = false;
 
+// 搜索和篩選狀態（用於載入更多時保持條件）
+let currentSearch = '';
+let currentCategory = '';
+
 // 全屏載入器元素
 let appLoader: HTMLElement | null = null;
 let loaderMessage: HTMLElement | null = null;
@@ -700,9 +704,9 @@ async function loadAttractionsFromAPI(
 
     useLocalData = false; // 標記為使用 API 數據
     hideLoading();
-    
+
     // 不需要在這裡填充分類，因為已在 initAreaChart() 中從圖表API獲取
-    
+
     renderList(); // 渲染列表而不是調用 updateList
   } catch (error) {
     hideLoading();
@@ -742,8 +746,14 @@ async function loadMoreAttractions(): Promise<void> {
       loadMoreBtn.innerHTML =
         '<ion-spinner name="crescent"></ion-spinner> 載入中...';
 
+      // 使用保存的搜索和分類條件（修復 bug：保持篩選條件）
       await loadAttractionsFromAPI(
-        { page: currentPage, limit: 20 },
+        {
+          page: currentPage,
+          limit: 20,
+          search: currentSearch || undefined,
+          category: currentCategory || undefined,
+        },
         true, // 顯示錯誤 UI
         true // 追加模式
       );
@@ -751,7 +761,8 @@ async function loadMoreAttractions(): Promise<void> {
       loadMoreBtn.textContent = originalText;
       loadMoreBtn.disabled = false;
 
-      await showSuccess(`成功載入第 ${currentPage} 頁資料`);
+      // 提示成功載入（不顯示技術細節的頁碼）
+      await showSuccess(`成功載入更多景點`);
     }
   } catch (error) {
     // 錯誤已在 loadAttractionsFromAPI 中處理
@@ -871,7 +882,7 @@ function hideListLoading(): void {
 async function loadRandomPreviewItems(): Promise<void> {
   try {
     console.log('📋 正在載入隨機預覽景點...');
-    
+
     // 從 API 隨機獲取 3 個景點（使用 limit=3 和隨機 page）
     const randomPage = Math.floor(Math.random() * 5) + 1; // 隨機頁碼 1-5
     const response = await fetchAttractions({
@@ -905,7 +916,7 @@ async function loadRandomPreviewItems(): Promise<void> {
     );
 
     console.log('✅ 成功載入預覽景點:', previewItems.length, '個');
-    
+
     // 重新渲染搜索提示（包含預覽景點）
     showSearchPrompt();
   } catch (error) {
@@ -953,7 +964,10 @@ function renderPreviewItem(item: Attraction): string {
   const itemArea = item.area || item.category || '未知';
   const itemImage = item.image || item.imageUrl || '';
   const itemFeature = item.feature || item.description || '暫無描述';
-  const shortFeature = itemFeature.length > 60 ? itemFeature.substring(0, 60) + '...' : itemFeature;
+  const shortFeature =
+    itemFeature.length > 60
+      ? itemFeature.substring(0, 60) + '...'
+      : itemFeature;
 
   return `
     <div class="preview-card" style="background: white; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1); transition: transform 0.2s ease; cursor: pointer;" 
@@ -1013,7 +1027,7 @@ function showSearchPrompt(): void {
     const previewSection = document.createElement('div');
     previewSection.className = 'preview-section';
     previewSection.style.cssText = 'padding: 1rem;';
-    
+
     const previewHeader = document.createElement('div');
     previewHeader.style.cssText = 'text-align: center; margin-bottom: 1.5rem;';
     previewHeader.innerHTML = `
@@ -1040,7 +1054,7 @@ function showSearchPrompt(): void {
       const cardWrapper = document.createElement('div');
       cardWrapper.innerHTML = renderPreviewItem(item);
       const card = cardWrapper.firstElementChild as HTMLElement;
-      
+
       // 添加懸停效果
       card.addEventListener('mouseenter', () => {
         card.style.transform = 'translateY(-4px)';
@@ -1053,7 +1067,7 @@ function showSearchPrompt(): void {
 
       // 添加點擊事件：點擊卡片自動填充該景點的分類到搜索
       card.addEventListener('click', () => {
-        const attraction = previewItems.find(i => i.id === item.id);
+        const attraction = previewItems.find((i) => i.id === item.id);
         if (attraction) {
           const category = attraction.category || attraction.area;
           if (category) {
@@ -1266,8 +1280,12 @@ async function updateList(): Promise<void> {
   // 取得搜尋和分類條件
   const searchbar = document.querySelector('ion-searchbar') as any;
   const categorySelect = document.querySelector('ion-select') as any;
-  const currentSearch = (searchbar?.value || '').trim();
-  const currentCategory = categorySelect?.value || '';
+  const searchValue = (searchbar?.value || '').trim();
+  const categoryValue = categorySelect?.value || '';
+
+  // 保存到全局變量（用於載入更多時使用）
+  currentSearch = searchValue;
+  currentCategory = categoryValue;
 
   // 判斷是否需要調用 API（有搜尋詞或有分類選擇）
   const shouldCallAPI = currentSearch.length > 0 || currentCategory.length > 0;
@@ -1308,12 +1326,12 @@ async function updateList(): Promise<void> {
     items = [];
     useLocalData = false;
     hasMoreData = false;
-    
+
     // 重新啟動預覽輪換
     if (previewItems.length > 0) {
       startPreviewRotation();
     }
-    
+
     showSearchPrompt();
   }
 }
@@ -1357,23 +1375,23 @@ let chartInstance: any = null;
 async function initAreaChart(): Promise<void> {
   try {
     console.log('📊 正在從服務器獲取圖表數據...');
-    
+
     // 調用服務器API獲取圖表數據
     const response = await fetch('/api/chart-data');
-    
+
     if (!response.ok) {
       throw new Error(`獲取圖表數據失敗: ${response.status}`);
     }
-    
+
     const chartData = await response.json();
     console.log('✅ 成功獲取圖表數據:', chartData);
-    
+
     // 填充分類選單（使用圖表API返回的分類）
     if (chartData.categories && chartData.categories.length > 0) {
       populateCategoriesFromList(chartData.categories);
       console.log('✅ 分類選單已填充:', chartData.categories);
     }
-    
+
     // 更新圖表標題
     const chartTitle = document
       .querySelector('#areaChart')
@@ -1387,82 +1405,82 @@ async function initAreaChart(): Promise<void> {
     const areas = chartData.labels;
     const counts = chartData.data;
 
-  // 隨機生成顏色
-  const backgroundColors = areas.map(
-    () =>
-      `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${
-        Math.random() * 255
-      }, 0.7)`
-  );
+    // 隨機生成顏色
+    const backgroundColors = areas.map(
+      () =>
+        `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${
+          Math.random() * 255
+        }, 0.7)`
+    );
 
-  // 繪製圖表
-  const canvas = document.getElementById('areaChart') as HTMLCanvasElement;
-  if (!canvas) return;
+    // 繪製圖表
+    const canvas = document.getElementById('areaChart') as HTMLCanvasElement;
+    if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  if (typeof (window as any).Chart !== 'undefined') {
-    // 如果已經存在圖表實例，先銷毀它
-    if (chartInstance) {
-      try {
-        chartInstance.destroy();
-        console.log('舊圖表已銷毀');
-      } catch (e) {
-        console.warn('銷毀舊圖表失敗:', e);
+    if (typeof (window as any).Chart !== 'undefined') {
+      // 如果已經存在圖表實例，先銷毀它
+      if (chartInstance) {
+        try {
+          chartInstance.destroy();
+          console.log('舊圖表已銷毀');
+        } catch (e) {
+          console.warn('銷毀舊圖表失敗:', e);
+        }
       }
-    }
 
-    // 創建新的圖表實例
-    chartInstance = new (window as any).Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: areas,
-        datasets: [
-          {
-            label: '景點數量',
-            data: counts,
-            backgroundColor: backgroundColors,
-            borderColor: 'rgba(255, 255, 255, 0.8)',
-            borderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              font: {
-                size: 12,
-              },
-              padding: 15,
+      // 創建新的圖表實例
+      chartInstance = new (window as any).Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: areas,
+          datasets: [
+            {
+              label: '景點數量',
+              data: counts,
+              backgroundColor: backgroundColors,
+              borderColor: 'rgba(255, 255, 255, 0.8)',
+              borderWidth: 2,
             },
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context: any) {
-                const label = context.label || '';
-                const value = context.raw || 0;
-                const total = context.dataset.data.reduce(
-                  (a: number, b: number) => a + b,
-                  0
-                );
-                const percentage = Math.round((value / total) * 100);
-                return `${label}: ${value}個 (${percentage}%)`;
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                font: {
+                  size: 12,
+                },
+                padding: 15,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context: any) {
+                  const label = context.label || '';
+                  const value = context.raw || 0;
+                  const total = context.dataset.data.reduce(
+                    (a: number, b: number) => a + b,
+                    0
+                  );
+                  const percentage = Math.round((value / total) * 100);
+                  return `${label}: ${value}個 (${percentage}%)`;
+                },
               },
             },
           },
         },
-      },
-    });
-    console.log('✅ 圖表已初始化');
-  }
+      });
+      console.log('✅ 圖表已初始化');
+    }
   } catch (error) {
     console.error('❌ 初始化圖表失敗:', error);
-    
+
     // 圖表初始化失敗時，顯示錯誤提示
     const chartCard = document.querySelector('#areaChart')?.closest('ion-card');
     if (chartCard) {
@@ -1594,12 +1612,12 @@ async function init(): Promise<void> {
   // 初始化 UI 組件
   try {
     await initAreaChart(); // 餅狀圖通過服務器API獲取（同時填充分類選單）
-    
+
     // 載入預覽景點並啟動輪換
     updateLoaderMessage('正在載入精選景點...');
     await loadRandomPreviewItems(); // 初次加載預覽景點
     startPreviewRotation(); // 啟動定時輪換
-    
+
     console.log('✅ UI 組件初始化完成');
   } catch (uiError) {
     console.error('⚠️ UI 初始化失敗:', uiError);
