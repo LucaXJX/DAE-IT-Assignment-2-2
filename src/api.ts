@@ -395,75 +395,93 @@ export function logout(): void {
 }
 
 /**
- * 添加收藏
+ * 添加收藏（帶重試機制）
  * @param itemId 項目 ID
  * @returns 收藏結果
  */
 export async function addBookmark(itemId: number): Promise<BookmarkResponse> {
-  try {
-    const token = getToken();
+  const token = getToken();
 
-    if (!token) {
-      throw new ApiError('請先登入', 401);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/bookmarks/${itemId}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await handleResponse<BookmarkResponse>(response);
-    console.log('收藏成功:', data);
-
-    return data;
-  } catch (error) {
-    console.error('收藏失敗:', error);
-
-    if (error instanceof ApiError) {
-      throw error;
-    }
-
-    throw new ApiError(error instanceof Error ? error.message : '收藏失敗');
+  if (!token) {
+    throw new ApiError('請先登入', 401);
   }
+
+  return withRetry(
+    async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookmarks/${itemId}`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await handleResponse<BookmarkResponse>(response);
+        console.log('✅ 收藏成功:', data);
+
+        return data;
+      } catch (error) {
+        console.error('收藏失敗:', error);
+
+        if (error instanceof ApiError) {
+          throw error;
+        }
+
+        throw new ApiError(error instanceof Error ? error.message : '收藏失敗');
+      }
+    },
+    {
+      maxRetries: 2,
+      initialDelay: 500,
+    }
+  );
 }
 
 /**
- * 移除收藏
+ * 移除收藏（帶重試機制）
  * @param itemId 項目 ID
  * @returns 移除結果
  */
 export async function removeBookmark(
   itemId: number
 ): Promise<BookmarkResponse> {
-  try {
-    const token = getToken();
+  const token = getToken();
 
-    if (!token) {
-      throw new ApiError('請先登入', 401);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/bookmarks/${itemId}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await handleResponse<BookmarkResponse>(response);
-    console.log('取消收藏成功:', data);
-
-    return data;
-  } catch (error) {
-    console.error('取消收藏失敗:', error);
-
-    if (error instanceof ApiError) {
-      throw error;
-    }
-
-    throw new ApiError(error instanceof Error ? error.message : '取消收藏失敗');
+  if (!token) {
+    throw new ApiError('請先登入', 401);
   }
+
+  return withRetry(
+    async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bookmarks/${itemId}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await handleResponse<BookmarkResponse>(response);
+        console.log('✅ 取消收藏成功:', data);
+
+        return data;
+      } catch (error) {
+        console.error('取消收藏失敗:', error);
+
+        if (error instanceof ApiError) {
+          throw error;
+        }
+
+        throw new ApiError(
+          error instanceof Error ? error.message : '取消收藏失敗'
+        );
+      }
+    },
+    {
+      maxRetries: 2,
+      initialDelay: 500,
+    }
+  );
 }
 
 /**
