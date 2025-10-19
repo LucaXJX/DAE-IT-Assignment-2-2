@@ -329,10 +329,15 @@
       </div>
     </div>
   </body>
-  <!-- 引入簡體轉繁體字對照表 -->
-  <script src="cc.js"></script>
-  <!-- 新增：引入Chart.js -->
+  <!-- 引入 Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- 引入編譯後的 TypeScript 代碼 -->
+  <script src="dist/main.js"></script>
+  
+  <!-- 以下是舊的 JavaScript 代碼，已遷移至 TypeScript，保留作為參考 -->
+  <!-- 
+  <script src="cc.js"></script>
   <script>
     // 初始化資料
     let items = [
@@ -803,4 +808,5 @@
 
     init(); // 啟動初始化
   </script>
+  -->
 </html>
