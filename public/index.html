@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>主題清單 - 公眾景點</title>
+    <!-- Ionic CDN -->
+    <script
+      type="module"
+      src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"
+    ></script>
+    <script
+      nomodule
+      src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"
+    />
+    <style>
+      :root {
+        --ion-color-primary: #3880ff;
+        --ion-color-secondary: #0cd1e8;
+        --ion-color-tertiary: #7044ff;
+        --ion-color-light: #f4f5f8;
+        --ion-color-medium: #989aa2;
+        --ion-color-dark: #2d3243;
+        --ion-color-white: #ffffff;
+        font-size: 16px;
+      }
+      
+      ion-content {
+        --background: linear-gradient(135deg, #f0fff4, #d4edda);
+      }
+      
+      body {
+        font-family: var(--ion-font-family);
+        margin: 0;
+        padding: 0;
+      }
+      
+      .list-item {
+        --background: rgba(255, 255, 255, 0.85);
+        border-radius: 0.75rem;
+        margin: 0.625rem;
+        box-shadow: 0 0.25rem 0.375rem rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.2s ease;
+        padding: 1rem;
+        backdrop-filter: blur(0.25rem);
+      }
+      
+      .list-item:hover {
+        transform: translateY(-0.125rem);
+        box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+      }
+      
+      ion-chip {
+        --background: var(--ion-color-primary/10);
+        --color: var(--ion-color-primary);
+        --border-radius: 0.75rem;
+        --padding-start: 0.625rem;
+        --padding-end: 0.625rem;
+      }
+      
+      ion-chip.color-primary {
+        --background: var(--ion-color-primary);
+        --color: white;
+      }
+      
+      ion-card {
+        --background: var(--ion-color-white);
+        --border-radius: 0.75rem;
+        --box-shadow: 0 0.125rem 0.75rem rgba(0, 0, 0, 0.05);
+        margin: 1rem;
+      }
+      
+      .item-title {
+        color: var(--ion-color-dark);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0.25rem 0;
+      }
+      
+      .item-subtitle {
+        color: var(--ion-color-medium);
+        font-size: 0.9em;
+        margin-bottom: 0.15rem;
+      }
+      
+      .item-content {
+        width: 100%;
+      }
+      
+      .item-details p {
+        margin: 0.375rem 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      
+      .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem;
+        margin: 1rem auto;
+      }
+      
+      /* 響應式設計 */
+      @media (min-width: 768px) {
+        .list-item {
+          max-width: 50rem;
+          margin: 0.9375rem auto;
+        }
+        .item-title {
+          font-size: 1.4rem;
+        }
+        .item-details p {
+          font-size: 1rem;
+        }
+      }
+      
+      @media (max-width: 375px) {
+        .item-title {
+          font-size: 1.1rem;
+        }
+        .item-subtitle,
+        .item-details p {
+          font-size: 0.85rem;
+        }
+        .tag-container {
+          gap: 0.25rem;
+        }
+        ion-chip {
+          font-size: 0.75rem;
+        }
+      }
+      
+      /* 圖片容器 */
+      .image-container {
+        position: relative;
+        width: 100%;
+        max-height: 12.5rem;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin: 0.5rem 0;
+        background-color: #f0f0f0;
+      }
+      
+      .item-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      
+      .image-fallback-text {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        color: #666;
+        font-size: 1rem;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        display: none;
+      }
+      
+      .image-container.error .image-fallback-text {
+        display: flex;
+      }
+      
+      .image-container.error .item-image {
+        display: none;
+      }
+      
+      /* 視頻彈窗 */
+      .video-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 1.25rem;
+      }
+      
+      .video-modal.active {
+        display: flex;
+      }
+      
+      .modal-content {
+        position: relative;
+        width: 100%;
+        max-width: 56.25rem;
+        background-color: #fff;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        max-height: 90vh;
+      }
+      
+      .close-btn {
+        position: absolute;
+        top: 0.9375rem;
+        right: 0.9375rem;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        width: 2.25rem;
+        height: 2.25rem;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 10;
+        font-size: 1.25rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .video-container {
+        width: 100%;
+        padding-top: 56.25%;
+        position: relative;
+        background-color: #000;
+      }
+      
+      .video-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+      
+      .modal-title {
+        padding: 0.9375rem;
+        font-size: 1.2rem;
+        font-weight: bold;
+        background-color: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <ion-app>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title style="text-align: center">公眾景點清單</ion-title>
+        </ion-toolbar>
+        <ion-searchbar placeholder="搜尋..."></ion-searchbar>
+        <ion-item>
+          <ion-select label="分類" interface="popover">
+            <ion-select-option value="">全部</ion-select-option>
+            <!-- 根據主題加入分類選項 -->
+          </ion-select>
+        </ion-item>
+      </ion-header>
+
+      <ion-content>
+        <!-- 圖表容器 -->
+        <div style="padding: 16px">
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>景點地區分佈（排名不分先後）</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <canvas id="areaChart" height="250"></canvas>
+            </ion-card-content>
+          </ion-card>
+        </div>
+        
+        <!-- 清單容器 -->
+        <ion-list>
+          <!-- 清單項目將由 JavaScript 動態生成 -->
+        </ion-list>
+      </ion-content>
+    </ion-app>
+    
+    <!-- 視頻彈窗 -->
+    <div class="video-modal" id="videoModal">
+      <div class="modal-content">
+        <button class="close-btn" id="closeBtn">&times;</button>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="video-container" id="videoContainer"></div>
+      </div>
+    </div>
+  </body>
+  
+  <!-- 引入 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- 引入編譯後的 TypeScript 代碼 -->
+  <script src="../dist/main.js"></script>
+</html>
+
