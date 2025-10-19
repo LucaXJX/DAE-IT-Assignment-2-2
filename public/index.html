@@ -495,6 +495,50 @@
       #authCloseBtn:hover {
         background: rgba(255, 255, 255, 0.3);
       }
+
+      /* 錯誤提示區域 */
+      .auth-error {
+        background: #ffebee;
+        border: 1px solid #f44336;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        color: #c62828;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .auth-error ion-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+
+      .auth-error .error-content {
+        flex: 1;
+      }
+
+      .auth-error .error-message {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      .auth-error .retry-btn {
+        background: #f44336;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+
+      .auth-error .retry-btn:hover {
+        background: #d32f2f;
+      }
     </style>
   </head>
   <body>
@@ -590,6 +634,9 @@
         <!-- 登入表單 -->
         <div class="auth-form-container" id="loginForm">
           <form id="loginFormElement">
+            <!-- 錯誤提示區域 -->
+            <div class="auth-error" id="loginError" style="display: none;"></div>
+            
             <div class="form-field">
               <label for="loginUsername" class="form-label">使用者名稱</label>
               <ion-input
@@ -622,6 +669,9 @@
         <!-- 註冊表單 -->
         <div class="auth-form-container hidden" id="signupForm">
           <form id="signupFormElement">
+            <!-- 錯誤提示區域 -->
+            <div class="auth-error" id="signupError" style="display: none;"></div>
+            
             <div class="form-field">
               <label for="signupUsername" class="form-label">使用者名稱</label>
               <ion-input

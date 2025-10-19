@@ -183,8 +183,11 @@ async function handleLogin(event: Event): Promise<void> {
   const username = usernameInput?.value?.trim();
   const password = passwordInput?.value;
 
+  // 清除之前的錯誤
+  hideFormError('loginError');
+
   if (!username || !password) {
-    await showError('請輸入使用者名稱和密碼');
+    showFormError('loginError', '請輸入使用者名稱和密碼');
     return;
   }
 
@@ -211,17 +214,37 @@ async function handleLogin(event: Event): Promise<void> {
     if (error instanceof ApiError) {
       // 優化特定錯誤消息
       let errorMsg = error.message;
+      let isNetworkError = false;
+
       if (
         errorMsg.includes('Invalid credentials') ||
         errorMsg.includes('not found')
       ) {
-        errorMsg = '使用者名稱或密碼錯誤';
+        errorMsg = '使用者名稱或密碼錯誤，請檢查後重試';
       } else if (errorMsg.includes('Error:')) {
         errorMsg = errorMsg.replace('Error: ', '');
       }
-      await showError(`登入失敗：${errorMsg}`);
+
+      // 判斷是否為網路錯誤（可重試）
+      if (errorMsg.includes('testing purposes') || errorMsg.includes('網路')) {
+        isNetworkError = true;
+        errorMsg = '網路連接失敗，請點擊重試按鈕';
+      }
+
+      showFormError('loginError', errorMsg, isNetworkError, () => {
+        hideFormError('loginError');
+        handleLogin(event);
+      });
     } else {
-      await showError('登入失敗，請檢查網路連接');
+      showFormError(
+        'loginError',
+        '登入失敗，請檢查網路連接後重試',
+        true,
+        () => {
+          hideFormError('loginError');
+          handleLogin(event);
+        }
+      );
     }
   } finally {
     // 恢復按鈕狀態
@@ -248,23 +271,27 @@ async function handleSignup(event: Event): Promise<void> {
   const password = passwordInput?.value;
   const confirm = confirmInput?.value;
 
+  // 清除之前的錯誤
+  hideFormError('signupError');
+
+  // 表單驗證（用戶輸入錯誤，不可重試）
   if (!username || !password || !confirm) {
-    await showError('請填寫所有欄位');
+    showFormError('signupError', '請填寫所有欄位');
     return;
   }
 
   if (username.length < 3) {
-    await showError('使用者名稱至少需要 3 個字元');
+    showFormError('signupError', '使用者名稱至少需要 3 個字元');
     return;
   }
 
   if (password.length < 6) {
-    await showError('密碼至少需要 6 個字元');
+    showFormError('signupError', '密碼至少需要 6 個字元');
     return;
   }
 
   if (password !== confirm) {
-    await showError('兩次輸入的密碼不一致');
+    showFormError('signupError', '兩次輸入的密碼不一致');
     return;
   }
 
@@ -291,14 +318,34 @@ async function handleSignup(event: Event): Promise<void> {
     if (error instanceof ApiError) {
       // 優化特定錯誤消息
       let errorMsg = error.message;
+      let isNetworkError = false;
+
       if (errorMsg.includes('already registered')) {
         errorMsg = '此使用者名稱已被註冊，請換一個試試';
       } else if (errorMsg.includes('Error:')) {
         errorMsg = errorMsg.replace('Error: ', '');
       }
-      await showError(`註冊失敗：${errorMsg}`);
+
+      // 判斷是否為網路錯誤（可重試）
+      if (errorMsg.includes('testing purposes') || errorMsg.includes('網路')) {
+        isNetworkError = true;
+        errorMsg = '網路連接失敗，請點擊重試按鈕';
+      }
+
+      showFormError('signupError', errorMsg, isNetworkError, () => {
+        hideFormError('signupError');
+        handleSignup(event);
+      });
     } else {
-      await showError('註冊失敗，請檢查網路連接');
+      showFormError(
+        'signupError',
+        '註冊失敗，請檢查網路連接後重試',
+        true,
+        () => {
+          hideFormError('signupError');
+          handleSignup(event);
+        }
+      );
     }
   } finally {
     // 恢復按鈕狀態
@@ -538,6 +585,47 @@ async function showError(
 
   document.body.appendChild(toast);
   await toast.present();
+}
+
+/**
+ * 在表單內顯示錯誤訊息
+ */
+function showFormError(
+  errorElementId: string,
+  message: string,
+  canRetry: boolean = false,
+  retryCallback?: () => void
+): void {
+  const errorDiv = document.getElementById(errorElementId);
+  if (!errorDiv) return;
+
+  errorDiv.style.display = 'flex';
+  errorDiv.innerHTML = `
+    <ion-icon name="alert-circle"></ion-icon>
+    <div class="error-content">
+      <div class="error-message">${message}</div>
+      ${canRetry && retryCallback ? '<button type="button" class="retry-btn">🔄 重試</button>' : ''}
+    </div>
+  `;
+
+  // 添加重試按鈕事件
+  if (canRetry && retryCallback) {
+    const retryBtn = errorDiv.querySelector('.retry-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', retryCallback);
+    }
+  }
+}
+
+/**
+ * 隱藏表單錯誤訊息
+ */
+function hideFormError(errorElementId: string): void {
+  const errorDiv = document.getElementById(errorElementId);
+  if (errorDiv) {
+    errorDiv.style.display = 'none';
+    errorDiv.innerHTML = '';
+  }
 }
 
 /**

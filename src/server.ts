@@ -5,9 +5,8 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// ES Module 中獲取 __dirname 的替代方案
+// 使用 process.cwd() 獲取當前工作目錄
 const __dirname = process.cwd();
 
 const app = express();
@@ -20,12 +19,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/dist', express.static(path.join(__dirname, 'dist')));
 
 // 設置 CORS（允許跨域請求，方便開發）
-app.use((req: Request, res: Response, next: NextFunction) => {
+app.use((_req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET, POST, PUT, DELETE, OPTIONS'
-  );
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header(
     'Access-Control-Allow-Headers',
     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
@@ -38,12 +34,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 主頁路由
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // 健康檢查端點
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -68,7 +64,7 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 // 錯誤處理中間件
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Server Error:', err);
   res.status(500).json({
     error: 'Internal Server Error',
@@ -93,4 +89,3 @@ process.on('SIGINT', () => {
   console.log('\n\n👋 正在關閉服務器...');
   process.exit(0);
 });
-
