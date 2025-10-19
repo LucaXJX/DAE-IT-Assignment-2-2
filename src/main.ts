@@ -13,6 +13,8 @@ import {
   logout,
   isLoggedIn,
   checkAuth,
+  addBookmark,
+  removeBookmark,
 } from './api';
 
 // 當前狀態
@@ -307,6 +309,57 @@ async function handleLogout(): Promise<void> {
   localStorage.removeItem('username'); // 清除用戶名
   updateAuthUI();
   await showSuccess('已成功登出');
+}
+
+/**
+ * 處理收藏功能
+ */
+async function handleBookmark(
+  itemId: number,
+  itemName: string,
+  buttonElement: HTMLElement
+): Promise<void> {
+  // 檢查是否已登入
+  if (!isLoggedIn()) {
+    await showError('請先登入才能使用收藏功能');
+    // 打開登入 Modal
+    openAuthModal('login');
+    return;
+  }
+
+  try {
+    // 禁用按鈕，顯示載入狀態
+    buttonElement.style.pointerEvents = 'none';
+    buttonElement.style.opacity = '0.6';
+
+    // 調用收藏 API
+    const result = await addBookmark(itemId);
+
+    // 根據返回結果顯示消息
+    if (result.message === 'newly bookmarked') {
+      await showSuccess(`已收藏 ${itemName}`);
+    } else if (result.message === 'already bookmarked') {
+      await showSuccess(`${itemName} 已在收藏清單中`);
+    }
+
+    console.log('收藏結果:', result);
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.message.includes('請先登入')) {
+        await showError('登入狀態已過期，請重新登入');
+        openAuthModal('login');
+      } else {
+        await showError(`收藏失敗：${error.message}`);
+      }
+    } else {
+      await showError('收藏失敗，請稍後再試');
+    }
+    console.error('收藏錯誤:', error);
+  } finally {
+    // 恢復按鈕狀態
+    buttonElement.style.pointerEvents = '';
+    buttonElement.style.opacity = '';
+  }
 }
 
 /**
@@ -706,7 +759,7 @@ async function updateList(): Promise<void> {
           <p>✨ 特色：${itemFeature}</p>
           ${facilitiesInfo}
         </div>
-        <!-- 標籤（地區/分類）和影片按鈕 -->
+        <!-- 標籤（地區/分類）、影片按鈕和收藏按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" data-area="${itemArea}">${itemArea}</ion-chip>
           ${itemTags
@@ -725,6 +778,11 @@ async function updateList(): Promise<void> {
           `
               : ''
           }
+          <!-- 收藏按鈕 -->
+          <ion-chip size="small" color="danger" class="bookmark-btn" data-item-id="${attraction.id || ''}" data-item-name="${itemName}">
+            <ion-icon name="heart-outline" slot="start"></ion-icon>
+            收藏
+          </ion-chip>
         </div>
       </div>
     `;
@@ -792,6 +850,21 @@ function attachEventListeners(): void {
   if (loadMoreBtn) {
     loadMoreBtn.addEventListener('click', loadMoreAttractions);
   }
+
+  // 收藏按鈕點擊事件
+  document.querySelectorAll('.bookmark-btn').forEach((chip) => {
+    chip.addEventListener('click', async () => {
+      const itemId = chip.getAttribute('data-item-id');
+      const itemName = chip.getAttribute('data-item-name');
+      if (itemId) {
+        await handleBookmark(
+          parseInt(itemId),
+          itemName || '景點',
+          chip as HTMLElement
+        );
+      }
+    });
+  });
 }
 
 /**
