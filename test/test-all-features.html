@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>功能測試頁面 - Assignment 2</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+    
+    .test-section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 0.5rem;
+      border-left: 4px solid #667eea;
+    }
+    
+    .test-section h2 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    
+    .test-item {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
+    }
+    
+    .test-item h3 {
+      color: #555;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .test-item p {
+      color: #666;
+      margin-bottom: 0.5rem;
+      line-height: 1.6;
+    }
+    
+    .test-item ul {
+      margin-left: 1.5rem;
+      color: #666;
+    }
+    
+    .test-item ul li {
+      margin-bottom: 0.3rem;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      margin-right: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button.secondary {
+      background: #6c757d;
+    }
+    
+    button.secondary:hover {
+      background: #5a6268;
+    }
+    
+    button.success {
+      background: #28a745;
+    }
+    
+    button.success:hover {
+      background: #218838;
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+    
+    .status.pending {
+      background: #ffc107;
+      color: #000;
+    }
+    
+    .status.pass {
+      background: #28a745;
+      color: white;
+    }
+    
+    .status.fail {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .console-output {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 1rem;
+    }
+    
+    .console-output .success {
+      color: #4ec9b0;
+    }
+    
+    .console-output .error {
+      color: #f48771;
+    }
+    
+    .console-output .info {
+      color: #9cdcfe;
+    }
+    
+    .summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 0.5rem;
+      margin-top: 2rem;
+    }
+    
+    .summary h2 {
+      margin-bottom: 1rem;
+    }
+    
+    .summary .score {
+      font-size: 2rem;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+    
+    .icon {
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Assignment 2 功能測試清單</h1>
+    <p class="subtitle">主題編號 9：公眾景點 | 學號：24829139 | 姓名：XU JIAXIN</p>
+    
+    <!-- 清單功能測試 -->
+    <div class="test-section">
+      <h2>📝 清單功能（30 分）</h2>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">📥</span>
+          測試 1：載入景點資料列表
+          <span class="status pending" id="status-1">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>打開主頁面 <a href="index.html" target="_blank">index.html</a></li>
+          <li>觀察載入動畫是否顯示</li>
+          <li>確認景點資料正確顯示（標題、圖片、分類等）</li>
+          <li>檢查控制台是否有錯誤處理提示</li>
+        </ul>
+        <p><strong>預期結果：</strong> 顯示 5 個景點，含圖片、標題、分類、開放時間、特色、設施</p>
+        <button onclick="window.open('index.html', '_blank')">打開測試頁面</button>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">📄</span>
+          測試 2：分頁載入（載入更多）
+          <span class="status pending" id="status-2">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>滾動到頁面底部</li>
+          <li>點擊「載入更多」按鈕</li>
+          <li>觀察是否載入第 2 頁資料</li>
+          <li>檢查錯誤處理（如網路斷開）</li>
+        </ul>
+        <p><strong>預期結果：</strong> 成功載入更多景點，顯示「成功載入第 X 頁資料」</p>
+      </div>
+    </div>
+    
+    <!-- 使用者認證測試 -->
+    <div class="test-section">
+      <h2>🔐 使用者認證（35 分）</h2>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">✍️</span>
+          測試 3：註冊功能
+          <span class="status pending" id="status-3">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>點擊右上角「登入」按鈕</li>
+          <li>切換到「註冊」標籤</li>
+          <li>輸入新用戶名（至少 3 字元）</li>
+          <li>輸入密碼（至少 6 字元）</li>
+          <li>確認密碼</li>
+          <li>點擊「註冊」按鈕</li>
+        </ul>
+        <p><strong>預期結果：</strong> 顯示「註冊成功！歡迎，XXX！」，自動登入</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">🔑</span>
+          測試 4：登入功能
+          <span class="status pending" id="status-4">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>點擊「登入」按鈕</li>
+          <li>輸入已註冊的使用者名稱和密碼</li>
+          <li>點擊「登入」按鈕</li>
+          <li>觀察 Header 是否顯示使用者名稱</li>
+        </ul>
+        <p><strong>預期結果：</strong> 顯示「歡迎回來，XXX！」，Header 顯示用戶名和登出按鈕</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">🚪</span>
+          測試 5：登出功能
+          <span class="status pending" id="status-5">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>登入後點擊右上角的登出按鈕</li>
+          <li>觀察 Header 是否恢復為「登入」按鈕</li>
+        </ul>
+        <p><strong>預期結果：</strong> 顯示「已成功登出」，Header 恢復為未登入狀態</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">💾</span>
+          測試 6：持久登入狀態
+          <span class="status pending" id="status-6">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>登入成功</li>
+          <li>刷新頁面（F5）</li>
+          <li>觀察是否仍然保持登入狀態</li>
+          <li>檢查控制台：「✅ Token 驗證成功，用戶已登入」</li>
+        </ul>
+        <p><strong>預期結果：</strong> 刷新後仍顯示用戶名，無需重新登入</p>
+      </div>
+    </div>
+    
+    <!-- 收藏功能測試 -->
+    <div class="test-section">
+      <h2>❤️ 收藏功能（35 分）</h2>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">➕</span>
+          測試 7：收藏項目
+          <span class="status pending" id="status-7">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>確保已登入</li>
+          <li>找到一個未收藏的景點（空心紅心 ♡）</li>
+          <li>點擊「收藏」按鈕</li>
+          <li>觀察按鈕是否變成實心紅心 ❤️</li>
+          <li>觀察是否顯示「已收藏 XXX」</li>
+        </ul>
+        <p><strong>預期結果：</strong> 按鈕變為 ❤️ 已收藏（紅色背景），顯示成功提示</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">➖</span>
+          測試 8：取消收藏
+          <span class="status pending" id="status-8">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>找到一個已收藏的景點（實心紅心 ❤️）</li>
+          <li>點擊「已收藏」按鈕</li>
+          <li>觀察按鈕是否變回空心 ♡</li>
+          <li>觀察是否顯示「已取消收藏 XXX」</li>
+        </ul>
+        <p><strong>預期結果：</strong> 按鈕變為 ♡ 收藏（空心），顯示取消成功提示</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">👁️</span>
+          測試 9：顯示收藏狀態
+          <span class="status pending" id="status-9">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>收藏 2-3 個景點</li>
+          <li>刷新頁面（F5）</li>
+          <li>觀察已收藏的景點是否仍顯示 ❤️ 已收藏</li>
+          <li>檢查控制台：「✅ 成功載入收藏列表，共 X 個項目」</li>
+        </ul>
+        <p><strong>預期結果：</strong> 刷新後收藏狀態保持，視覺標識正確</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">🔄</span>
+          測試 10：未登入時收藏
+          <span class="status pending" id="status-10">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>登出（如果已登入）</li>
+          <li>點擊任意景點的「收藏」按鈕</li>
+          <li>觀察是否顯示「請先登入才能使用收藏功能」</li>
+          <li>觀察是否自動打開登入 Modal</li>
+        </ul>
+        <p><strong>預期結果：</strong> 提示登入，自動打開登入 Modal</p>
+      </div>
+    </div>
+    
+    <!-- 加分項目測試 -->
+    <div class="test-section">
+      <h2>⭐ 加分項目（15 分）</h2>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">🔍</span>
+          測試 11：搜尋功能
+          <span class="status pending" id="status-11">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>在頂部搜尋框輸入關鍵字（如：「台灣」）</li>
+          <li>觀察列表是否即時過濾</li>
+          <li>測試繁簡轉換（輸入簡體「台湾」）</li>
+          <li>清空搜尋框，確認顯示所有項目</li>
+        </ul>
+        <p><strong>預期結果：</strong> 即時搜尋，支持繁簡轉換</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">🏷️</span>
+          測試 12：分類過濾
+          <span class="status pending" id="status-12">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>點擊「分類」下拉選單</li>
+          <li>選擇一個分類（如：「自然景觀」）</li>
+          <li>觀察列表是否只顯示該分類的景點</li>
+          <li>點擊景點卡片上的分類標籤，確認自動過濾</li>
+        </ul>
+        <p><strong>預期結果：</strong> 成功按分類過濾，圖表更新</p>
+      </div>
+      
+      <div class="test-item">
+        <h3>
+          <span class="icon">✅</span>
+          測試 13：資料驗證
+          <span class="status pending" id="status-13">待測試</span>
+        </h3>
+        <p><strong>測試步驟：</strong></p>
+        <ul>
+          <li>測試註冊：用戶名少於 3 字元</li>
+          <li>測試註冊：密碼少於 6 字元</li>
+          <li>測試註冊：兩次密碼不一致</li>
+          <li>測試登入：空欄位</li>
+        </ul>
+        <p><strong>預期結果：</strong> 所有驗證正確觸發，顯示友好錯誤提示</p>
+      </div>
+    </div>
+    
+    <!-- 自動化測試腳本 -->
+    <div class="test-section">
+      <h2>🤖 自動化檢查</h2>
+      <div class="test-item">
+        <h3>執行自動化檢查腳本</h3>
+        <p>點擊下方按鈕執行自動化測試（需要主頁面已載入）</p>
+        <button onclick="runAutoTests()">🚀 執行自動化測試</button>
+        <div class="console-output" id="testOutput" style="display: none;">
+          <div id="outputContent"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 測試總結 -->
+    <div class="summary">
+      <h2>📊 測試總結</h2>
+      <div class="score" id="totalScore">等待測試...</div>
+      <p id="summaryText">請完成所有測試項目</p>
+      <button class="success" onclick="markAllPass()">✅ 標記所有測試通過</button>
+      <button class="secondary" onclick="resetTests()">🔄 重置測試狀態</button>
+    </div>
+  </div>
+  
+  <script>
+    // 測試狀態記錄
+    const testStatus = {
+      1: 'pending',
+      2: 'pending',
+      3: 'pending',
+      4: 'pending',
+      5: 'pending',
+      6: 'pending',
+      7: 'pending',
+      8: 'pending',
+      9: 'pending',
+      10: 'pending',
+      11: 'pending',
+      12: 'pending',
+      13: 'pending',
+    };
+    
+    // 更新測試狀態
+    function updateStatus(testId, status) {
+      testStatus[testId] = status;
+      const element = document.getElementById(`status-${testId}`);
+      if (element) {
+        element.className = `status ${status}`;
+        element.textContent = status === 'pass' ? '✅ 通過' : status === 'fail' ? '❌ 失敗' : '待測試';
+      }
+      updateSummary();
+    }
+    
+    // 更新總結
+    function updateSummary() {
+      const passed = Object.values(testStatus).filter(s => s === 'pass').length;
+      const total = Object.keys(testStatus).length;
+      const percentage = Math.round((passed / total) * 100);
+      
+      document.getElementById('totalScore').textContent = `${passed}/${total} 測試通過（${percentage}%）`;
+      
+      if (passed === total) {
+        document.getElementById('summaryText').innerHTML = 
+          '🎉 <strong>恭喜！所有測試項目都通過了！</strong><br>你的 Assignment 2 已完成所有必需功能。';
+      } else {
+        document.getElementById('summaryText').textContent = 
+          `還有 ${total - passed} 個測試項目待完成。`;
+      }
+    }
+    
+    // 標記所有測試通過
+    function markAllPass() {
+      if (confirm('確定標記所有測試為通過嗎？\n請確保你已經手動測試過所有功能。')) {
+        for (let i = 1; i <= 13; i++) {
+          updateStatus(i, 'pass');
+        }
+      }
+    }
+    
+    // 重置測試狀態
+    function resetTests() {
+      for (let i = 1; i <= 13; i++) {
+        updateStatus(i, 'pending');
+      }
+    }
+    
+    // 自動化測試
+    async function runAutoTests() {
+      const output = document.getElementById('testOutput');
+      const content = document.getElementById('outputContent');
+      
+      output.style.display = 'block';
+      content.innerHTML = '<div class="info">🤖 開始執行自動化測試...</div>';
+      
+      const log = (message, type = 'info') => {
+        content.innerHTML += `<div class="${type}">${message}</div>`;
+        content.scrollTop = content.scrollHeight;
+      };
+      
+      try {
+        // 測試 1：檢查 API 是否可用
+        log('📡 測試 1：檢查 API 連接...', 'info');
+        const apiUrl = 'https://dae-mobile-assignment.hkit.cc/api/attractions?page=1&limit=1';
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          log('✅ API 連接成功', 'success');
+        } else {
+          log('❌ API 連接失敗: ' + response.status, 'error');
+        }
+        
+        // 測試 2：檢查 localStorage
+        log('', 'info');
+        log('💾 測試 2：檢查本地存儲...', 'info');
+        const hasToken = localStorage.getItem('auth_token') !== null;
+        const hasUserId = localStorage.getItem('user_id') !== null;
+        const hasUsername = localStorage.getItem('username') !== null;
+        
+        log(`Token: ${hasToken ? '✅ 存在' : '❌ 不存在'}`, hasToken ? 'success' : 'info');
+        log(`User ID: ${hasUserId ? '✅ 存在' : '❌ 不存在'}`, hasUserId ? 'success' : 'info');
+        log(`Username: ${hasUsername ? '✅ 存在 (' + localStorage.getItem('username') + ')' : '❌ 不存在'}`, hasUsername ? 'success' : 'info');
+        
+        // 測試 3：檢查頁面元素
+        log('', 'info');
+        log('🔍 測試 3：檢查頁面元素...', 'info');
+        
+        const mainWindow = window.opener || window;
+        const elements = {
+          '登入按鈕': mainWindow.document?.getElementById('loginHeaderBtn'),
+          '登出按鈕': mainWindow.document?.getElementById('logoutHeaderBtn'),
+          '用戶名顯示': mainWindow.document?.getElementById('usernameDisplay'),
+          '搜尋框': mainWindow.document?.querySelector('ion-searchbar'),
+          '分類選單': mainWindow.document?.querySelector('ion-select'),
+          '景點列表': mainWindow.document?.querySelector('ion-list'),
+        };
+        
+        for (const [name, element] of Object.entries(elements)) {
+          if (element) {
+            log(`${name}: ✅ 存在`, 'success');
+          } else {
+            log(`${name}: ❌ 不存在`, 'error');
+          }
+        }
+        
+        log('', 'info');
+        log('🎉 自動化檢查完成！', 'success');
+        log('📝 請手動測試所有互動功能以確保完整性。', 'info');
+        
+      } catch (error) {
+        log('❌ 測試過程中發生錯誤: ' + error.message, 'error');
+      }
+    }
+    
+    // 初始化
+    updateSummary();
+  </script>
+</body>
+</html>
+
