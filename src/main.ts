@@ -199,7 +199,17 @@ async function handleLogin(event: Event): Promise<void> {
     updateAuthUI();
   } catch (error) {
     if (error instanceof ApiError) {
-      await showError(`登入失敗：${error.message}`);
+      // 優化特定錯誤消息
+      let errorMsg = error.message;
+      if (
+        errorMsg.includes('Invalid credentials') ||
+        errorMsg.includes('not found')
+      ) {
+        errorMsg = '使用者名稱或密碼錯誤';
+      } else if (errorMsg.includes('Error:')) {
+        errorMsg = errorMsg.replace('Error: ', '');
+      }
+      await showError(`登入失敗：${errorMsg}`);
     } else {
       await showError('登入失敗，請檢查網路連接');
     }
@@ -266,7 +276,14 @@ async function handleSignup(event: Event): Promise<void> {
     updateAuthUI();
   } catch (error) {
     if (error instanceof ApiError) {
-      await showError(`註冊失敗：${error.message}`);
+      // 優化特定錯誤消息
+      let errorMsg = error.message;
+      if (errorMsg.includes('already registered')) {
+        errorMsg = '此使用者名稱已被註冊，請換一個試試';
+      } else if (errorMsg.includes('Error:')) {
+        errorMsg = errorMsg.replace('Error: ', '');
+      }
+      await showError(`註冊失敗：${errorMsg}`);
     } else {
       await showError('註冊失敗，請檢查網路連接');
     }

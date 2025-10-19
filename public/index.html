@@ -598,6 +598,7 @@
                 required
                 fill="outline"
                 placeholder="請輸入使用者名稱"
+                autocomplete="off"
               ></ion-input>
             </div>
             <div class="form-field">
@@ -608,6 +609,7 @@
                 required
                 fill="outline"
                 placeholder="請輸入密碼"
+                autocomplete="new-password"
               ></ion-input>
             </div>
             <ion-button expand="block" type="submit" id="loginBtn">
@@ -629,6 +631,7 @@
                 minlength="3"
                 fill="outline"
                 placeholder="至少 3 個字元"
+                autocomplete="off"
               ></ion-input>
             </div>
             <div class="form-field">
@@ -640,6 +643,7 @@
                 minlength="6"
                 fill="outline"
                 placeholder="至少 6 個字元"
+                autocomplete="new-password"
               ></ion-input>
             </div>
             <div class="form-field">
@@ -652,6 +656,7 @@
                 required
                 fill="outline"
                 placeholder="請再次輸入密碼"
+                autocomplete="new-password"
               ></ion-input>
             </div>
             <div class="password-hint">
@@ -670,6 +675,24 @@
 
   <!-- 引入 Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 開發環境：過濾控制台噪音 -->
+  <script>
+    // 過濾 Chrome 擴展的錯誤消息（僅在開發環境）
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      const originalError = console.error;
+      console.error = function(...args) {
+        const message = args.join(' ');
+        // 忽略 Chrome 擴展的錯誤
+        if (message.includes('chrome-extension://') || 
+            message.includes('ERR_FILE_NOT_FOUND') ||
+            message.includes('completion_list.html')) {
+          return; // 不顯示這些錯誤
+        }
+        originalError.apply(console, args);
+      };
+    }
+  </script>
 
   <!-- 引入編譯後的 TypeScript 代碼 -->
   <script src="/dist/main.js"></script>
