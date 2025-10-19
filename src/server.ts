@@ -183,14 +183,17 @@ app.get('/api/chart-data', async (_req: Request, res: Response) => {
     });
 
     // 轉換為圖表所需的格式
+    const categories = Object.keys(categoryCount);
     const chartData = {
-      labels: Object.keys(categoryCount),
+      labels: categories,
       data: Object.values(categoryCount),
       total: allItems.length,
+      categories: categories, // 新增：分類列表供前端下拉選單使用
     };
-
+    
     console.log('📊 分類統計:', categoryCount);
-
+    console.log('📋 可用分類:', categories);
+    
     res.json(chartData);
   } catch (error) {
     console.error('❌ 獲取圖表數據失敗:', error);

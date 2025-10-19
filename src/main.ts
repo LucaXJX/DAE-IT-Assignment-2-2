@@ -4,7 +4,6 @@
  */
 import { LocalAttraction, Attraction } from './types';
 import { localAttractions } from './data';
-import { convertText } from './zhconvert';
 import {
   fetchAttractions,
   ApiError,
@@ -91,22 +90,6 @@ function hideAppLoader(): void {
   if (ionApp) {
     // 顯示主應用內容
     ionApp.classList.add('loaded');
-  }
-}
-
-/**
- * 使用繁化姬 API 進行簡體到繁體轉換
- * @param text 要轉換的文字
- * @returns 轉換後的繁體文字
- */
-async function simplifyToTraditional(text: string): Promise<string> {
-  if (!text) return '';
-
-  try {
-    return await convertText(text, 'Taiwan');
-  } catch (error) {
-    console.error('轉換失敗，使用原文:', error);
-    return text;
   }
 }
 
@@ -713,10 +696,9 @@ async function loadAttractionsFromAPI(
 
     useLocalData = false; // 標記為使用 API 數據
     hideLoading();
-
-    // 首次API調用成功後，填充分類選項
-    populateCategories();
-
+    
+    // 不需要在這裡填充分類，因為已在 initAreaChart() 中從圖表API獲取
+    
     renderList(); // 渲染列表而不是調用 updateList
   } catch (error) {
     hideLoading();
@@ -777,17 +759,14 @@ async function loadMoreAttractions(): Promise<void> {
 }
 
 /**
- * 初始化分類選項（地區/分類）
+ * 從分類列表填充分類選單
  */
-function populateCategories(): void {
+function populateCategoriesFromList(categories: string[]): void {
   const categorySelect = document.querySelector('ion-select');
   if (!categorySelect) return;
 
-  // 更新選單標籤（根據數據來源）
-  const selectLabel = (categorySelect as any).label;
-  if (selectLabel !== undefined) {
-    (categorySelect as any).label = useLocalData ? '地區' : '分類';
-  }
+  // 更新選單標籤
+  (categorySelect as any).label = '分類';
 
   // 清空現有選項（保留"全部"選項）
   const allOptions = categorySelect.querySelectorAll('ion-select-option');
@@ -797,16 +776,12 @@ function populateCategories(): void {
     }
   });
 
-  // 取得所有唯一地區/分類
-  const areas = Array.from(
-    new Set(items.map((item) => item.area || (item as any).category))
-  );
-
-  areas.forEach((area) => {
-    if (!area) return;
+  // 添加分類選項
+  categories.forEach((category) => {
+    if (!category) return;
     const option = document.createElement('ion-select-option');
-    (option as any).value = area;
-    option.textContent = area;
+    (option as any).value = category;
+    option.textContent = category;
     categorySelect.appendChild(option);
   });
 }
@@ -1194,6 +1169,12 @@ async function initAreaChart(): Promise<void> {
     const chartData = await response.json();
     console.log('✅ 成功獲取圖表數據:', chartData);
     
+    // 填充分類選單（使用圖表API返回的分類）
+    if (chartData.categories && chartData.categories.length > 0) {
+      populateCategoriesFromList(chartData.categories);
+      console.log('✅ 分類選單已填充:', chartData.categories);
+    }
+    
     // 更新圖表標題
     const chartTitle = document
       .querySelector('#areaChart')
@@ -1413,8 +1394,7 @@ async function init(): Promise<void> {
 
   // 初始化 UI 組件
   try {
-    // populateCategories(); // 先不初始化分類，等第一次API調用後再填充
-    await initAreaChart(); // 餅狀圖通過服務器API獲取
+    await initAreaChart(); // 餅狀圖通過服務器API獲取（同時填充分類選單）
     showSearchPrompt(); // 顯示搜索提示
     console.log('✅ UI 組件初始化完成');
   } catch (uiError) {
