@@ -1,0 +1,28 @@
+{
+  "name": "dae-it-assignment-4",
+  "version": "1.0.0",
+  "description": "手機應用程式開發導論 - 習作二：API 整合與資料同步",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js --sourcemap",
+    "watch": "esbuild src/main.ts --bundle --outfile=dist/main.js --sourcemap --watch",
+    "dev": "npm run watch"
+  },
+  "keywords": [
+    "typescript",
+    "ionic",
+    "mobile-web"
+  ],
+  "author": "XU JIAXIN",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.19.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.9.3",
+    "@types/express": "^5.0.3",
+    "express": "^5.1.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0"
+  }
+}
+
