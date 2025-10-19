@@ -12,6 +12,7 @@ import {
   signup,
   logout,
   isLoggedIn,
+  checkAuth,
 } from './api';
 
 // 當前狀態
@@ -1050,10 +1051,28 @@ async function init(): Promise<void> {
     console.error('⚠️ UI 初始化失敗:', uiError);
   }
 
-  // 檢查用戶登入狀態
+  // 檢查用戶登入狀態並驗證 token 有效性
   if (isLoggedIn()) {
-    currentUsername = localStorage.getItem('username');
-    console.log('用戶已登入:', currentUsername);
+    console.log('檢測到本地 token，正在驗證...');
+    try {
+      const authResult = await checkAuth();
+      if (authResult.user_id) {
+        // Token 有效，恢復用戶狀態
+        currentUsername = localStorage.getItem('username');
+        console.log('✅ Token 驗證成功，用戶已登入:', currentUsername);
+      } else {
+        // Token 無效，清除狀態
+        console.log('⚠️ Token 已失效，清除登入狀態');
+        currentUsername = null;
+        localStorage.removeItem('username');
+      }
+    } catch (error) {
+      console.error('❌ Token 驗證失敗:', error);
+      currentUsername = null;
+      localStorage.removeItem('username');
+    }
+  } else {
+    console.log('未檢測到 token，用戶未登入');
   }
 
   // 更新認證 UI

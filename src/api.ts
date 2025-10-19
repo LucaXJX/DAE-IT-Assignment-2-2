@@ -333,35 +333,57 @@ export async function login(
 }
 
 /**
- * 檢查登入狀態
+ * 檢查登入狀態（帶重試機制）
  * @returns 使用者 ID（如果已登入）
  */
 export async function checkAuth(): Promise<{ user_id: number | null }> {
-  try {
-    const token = getToken();
+  const token = getToken();
 
-    if (!token) {
-      return { user_id: null };
-    }
-
-    const response = await fetch(`${API_BASE_URL}/auth/check`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await handleResponse<{ user_id: number | null }>(response);
-
-    return data;
-  } catch (error) {
-    console.error('檢查登入狀態失敗:', error);
-
-    // 如果檢查失敗，清除 token
-    clearToken();
-
+  if (!token) {
     return { user_id: null };
   }
+
+  return withRetry(
+    async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/check`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await handleResponse<{ user_id: number | null }>(response);
+
+        console.log('✅ Token 驗證成功:', data);
+        return data;
+      } catch (error) {
+        console.error('檢查登入狀態失敗:', error);
+
+        // 如果是 401 (未授權)，說明 token 真的無效，不需要重試
+        if (
+          error instanceof ApiError &&
+          error.message.includes('Unauthorized')
+        ) {
+          clearToken();
+          console.log('Token 無效，已清除');
+          return { user_id: null };
+        }
+
+        // 其他錯誤（如網路問題、500 錯誤）則拋出以觸發重試
+        throw error;
+      }
+    },
+    {
+      maxRetries: 2, // 檢查狀態重試次數較少
+      initialDelay: 500,
+    }
+  ).catch((error) => {
+    // 重試失敗後，清除 token
+    console.error('❌ Token 驗證失敗（已重試），清除 token:', error);
+    clearToken();
+    return { user_id: null };
+  });
 }
 
 /**
