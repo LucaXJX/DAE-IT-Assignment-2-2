@@ -744,6 +744,9 @@ async function loadMoreAttractions(): Promise<void> {
     isLoadingMore = true;
     currentPage++;
 
+    // 顯示頂部加載進度條
+    showLoadingBar();
+
     // 顯示載入按鈕的載入狀態
     const loadMoreBtn = document.getElementById('loadMoreBtn') as any;
     if (loadMoreBtn) {
@@ -767,10 +770,15 @@ async function loadMoreAttractions(): Promise<void> {
       loadMoreBtn.textContent = originalText;
       loadMoreBtn.disabled = false;
 
+      // 隱藏頂部加載進度條
+      hideLoadingBar();
+
       // 提示成功載入（不顯示技術細節的頁碼）
       await showSuccess(`成功載入更多景點`);
     }
   } catch (error) {
+    // 隱藏頂部加載進度條
+    hideLoadingBar();
     // 錯誤已在 loadAttractionsFromAPI 中處理
     currentPage--; // 恢復頁碼
     console.error('載入更多資料失敗:', error);
@@ -849,6 +857,50 @@ function closeVideoModal(): void {
 }
 
 /**
+ * 顯示頂部加載進度條（類似 YouTube/Facebook）
+ */
+function showLoadingBar(): void {
+  // 避免重複創建
+  if (document.getElementById('top-loading-bar')) return;
+
+  const header = document.querySelector('ion-header');
+  if (!header) return;
+
+  // 創建進度條容器
+  const progressBar = document.createElement('ion-progress-bar');
+  progressBar.id = 'top-loading-bar';
+  progressBar.setAttribute('type', 'indeterminate');
+  progressBar.setAttribute('color', 'primary');
+  progressBar.style.cssText = `
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 1000;
+    --progress-background: var(--ion-color-primary);
+  `;
+
+  header.appendChild(progressBar);
+}
+
+/**
+ * 隱藏頂部加載進度條
+ */
+function hideLoadingBar(): void {
+  const progressBar = document.getElementById('top-loading-bar');
+  if (progressBar) {
+    // 添加淡出效果
+    progressBar.style.opacity = '0';
+    progressBar.style.transition = 'opacity 0.3s ease';
+
+    setTimeout(() => {
+      progressBar.remove();
+    }, 300);
+  }
+}
+
+/**
  * 顯示列表加載動畫
  */
 function showListLoading(): void {
@@ -883,11 +935,39 @@ function hideListLoading(): void {
 }
 
 /**
+ * 顯示預覽景點加載狀態
+ */
+function showPreviewLoading(): void {
+  const list = document.querySelector('ion-list');
+  if (!list) return;
+
+  list.innerHTML = `
+    <div class="load-more-container" style="text-align:center; padding:3rem 1.5rem;">
+      <ion-icon name="search-outline" style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;"></ion-icon>
+      <h2 style="color: #2d3243; margin: 1rem 0;">開始探索景點</h2>
+      <p style="color: #666; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
+        使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
+      </p>
+      <div style="margin-top: 2rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+        <ion-spinner name="crescent" style="margin-right: 0.5rem;"></ion-spinner>
+        <span style="color: #667eea;">正在載入精選景點...</span>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * 載入隨機預覽景點
  */
 async function loadRandomPreviewItems(): Promise<void> {
   try {
     console.log('📋 正在載入隨機預覽景點...');
+
+    // 顯示頂部加載進度條
+    showLoadingBar();
+
+    // 顯示加載狀態
+    showPreviewLoading();
 
     // 從 API 隨機獲取 3 個景點（使用 limit=3 和隨機 page）
     const randomPage = Math.floor(Math.random() * 5) + 1; // 隨機頁碼 1-5
@@ -925,11 +1005,17 @@ async function loadRandomPreviewItems(): Promise<void> {
 
     // 重新渲染搜索提示（包含預覽景點）
     showSearchPrompt();
+
+    // 隱藏頂部加載進度條
+    hideLoadingBar();
   } catch (error) {
     console.error('❌ 載入預覽景點失敗:', error);
     // 失敗時仍然顯示搜索提示（但不顯示預覽）
     previewItems = [];
     showSearchPrompt();
+
+    // 隱藏頂部加載進度條
+    hideLoadingBar();
   }
 }
 
@@ -1302,7 +1388,10 @@ async function updateList(): Promise<void> {
 
     // 調用 API 搜尋
     try {
-      // 顯示加載動畫
+      // 顯示頂部加載進度條
+      showLoadingBar();
+
+      // 顯示列表加載動畫
       showListLoading();
 
       // 重置分頁狀態
@@ -1322,8 +1411,10 @@ async function updateList(): Promise<void> {
       );
 
       hideListLoading();
+      hideLoadingBar();
     } catch (error) {
       hideListLoading();
+      hideLoadingBar();
       console.error('搜尋失敗:', error);
       // 錯誤已在 loadAttractionsFromAPI 中處理
     }
