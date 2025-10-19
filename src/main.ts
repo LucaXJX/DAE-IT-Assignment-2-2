@@ -37,6 +37,10 @@ let currentUsername: string | null = null;
 // 收藏狀態
 let bookmarkedItems: Set<number> = new Set(); // 存儲已收藏的項目 ID
 
+// 預覽景點狀態
+let previewItems: Attraction[] = []; // 存儲預覽景點
+let previewRotationTimer: number | null = null; // 預覽景點輪換計時器
+
 /**
  * 初始化全屏載入器
  */
@@ -862,7 +866,124 @@ function hideListLoading(): void {
 }
 
 /**
- * 顯示搜索提示（初始狀態）
+ * 載入隨機預覽景點
+ */
+async function loadRandomPreviewItems(): Promise<void> {
+  try {
+    console.log('📋 正在載入隨機預覽景點...');
+    
+    // 從 API 隨機獲取 3 個景點（使用 limit=3 和隨機 page）
+    const randomPage = Math.floor(Math.random() * 5) + 1; // 隨機頁碼 1-5
+    const response = await fetchAttractions({
+      page: randomPage,
+      limit: 3,
+    });
+
+    // 將 API 資料轉換為統一格式
+    previewItems = response.items.map(
+      (item) =>
+        ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          imageUrl: item.image_url,
+          videoUrl: item.video_url,
+          openingHours: item.opening_hours,
+          address: item.address,
+          city: item.city,
+          country: item.country,
+          tags: item.tags,
+          facilities: item.facilities,
+          name: item.title,
+          area: item.category,
+          openTime: item.opening_hours || '請查詢官方資訊',
+          feature: item.description,
+          image: item.image_url,
+          video: item.video_url,
+        }) as Attraction
+    );
+
+    console.log('✅ 成功載入預覽景點:', previewItems.length, '個');
+    
+    // 重新渲染搜索提示（包含預覽景點）
+    showSearchPrompt();
+  } catch (error) {
+    console.error('❌ 載入預覽景點失敗:', error);
+    // 失敗時仍然顯示搜索提示（但不顯示預覽）
+    previewItems = [];
+    showSearchPrompt();
+  }
+}
+
+/**
+ * 開始預覽景點輪換
+ */
+function startPreviewRotation(): void {
+  // 清除現有計時器
+  if (previewRotationTimer !== null) {
+    window.clearInterval(previewRotationTimer);
+  }
+
+  // 設置定時器：每 8 秒更換一次
+  previewRotationTimer = window.setInterval(() => {
+    console.log('🔄 更換預覽景點...');
+    loadRandomPreviewItems();
+  }, 8000);
+
+  console.log('✅ 預覽景點輪換已啟動（每 8 秒更換一次）');
+}
+
+/**
+ * 停止預覽景點輪換
+ */
+function stopPreviewRotation(): void {
+  if (previewRotationTimer !== null) {
+    window.clearInterval(previewRotationTimer);
+    previewRotationTimer = null;
+    console.log('🛑 預覽景點輪換已停止');
+  }
+}
+
+/**
+ * 渲染預覽景點卡片
+ */
+function renderPreviewItem(item: Attraction): string {
+  const itemName = item.name || item.title || '未命名';
+  const itemArea = item.area || item.category || '未知';
+  const itemImage = item.image || item.imageUrl || '';
+  const itemFeature = item.feature || item.description || '暫無描述';
+  const shortFeature = itemFeature.length > 60 ? itemFeature.substring(0, 60) + '...' : itemFeature;
+
+  return `
+    <div class="preview-card" style="background: white; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1); transition: transform 0.2s ease; cursor: pointer;" 
+         data-preview-id="${item.id}">
+      <div class="image-container" style="height: 150px; overflow: hidden;">
+        <img src="${itemImage}" alt="${itemName}" 
+             style="width: 100%; height: 100%; object-fit: cover;"
+             onload="this.style.display='block'"
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div style="width: 100%; height: 100%; background: #f0f0f0; display: none; align-items: center; justify-content: center; color: #666;">
+          圖片載入中
+        </div>
+      </div>
+      <div style="padding: 1rem;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: #2d3243; margin-bottom: 0.5rem;">
+          ${itemName}
+        </div>
+        <div style="font-size: 0.85rem; color: #667eea; margin-bottom: 0.5rem;">
+          📍 ${itemArea}
+        </div>
+        <div style="font-size: 0.9rem; color: #666; line-height: 1.4;">
+          ${shortFeature}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 顯示搜索提示（初始狀態）+ 預覽景點
  */
 function showSearchPrompt(): void {
   const list = document.querySelector('ion-list');
@@ -872,7 +993,7 @@ function showSearchPrompt(): void {
 
   const promptItem = document.createElement('div');
   promptItem.className = 'load-more-container';
-  promptItem.style.cssText = 'text-align:center; padding:3rem 1.5rem;';
+  promptItem.style.cssText = 'text-align:center; padding:3rem 1.5rem 1.5rem;';
   promptItem.innerHTML = `
     <ion-icon name="search-outline" style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;"></ion-icon>
     <h2 style="color: #2d3243; margin: 1rem 0;">開始探索景點</h2>
@@ -886,6 +1007,75 @@ function showSearchPrompt(): void {
   `;
 
   list.appendChild(promptItem);
+
+  // 如果有預覽景點，顯示它們
+  if (previewItems.length > 0) {
+    const previewSection = document.createElement('div');
+    previewSection.className = 'preview-section';
+    previewSection.style.cssText = 'padding: 1rem;';
+    
+    const previewHeader = document.createElement('div');
+    previewHeader.style.cssText = 'text-align: center; margin-bottom: 1.5rem;';
+    previewHeader.innerHTML = `
+      <h3 style="color: #2d3243; margin: 0 0 0.5rem; font-size: 1.3rem;">
+        ✨ 精選景點推薦
+      </h3>
+      <p style="color: #666; font-size: 0.9rem; margin: 0;">
+        每 8 秒自動更換 • 點擊卡片查看分類
+      </p>
+    `;
+    previewSection.appendChild(previewHeader);
+
+    const previewGrid = document.createElement('div');
+    previewGrid.className = 'preview-grid';
+    previewGrid.style.cssText = `
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    `;
+
+    previewItems.forEach((item) => {
+      const cardWrapper = document.createElement('div');
+      cardWrapper.innerHTML = renderPreviewItem(item);
+      const card = cardWrapper.firstElementChild as HTMLElement;
+      
+      // 添加懸停效果
+      card.addEventListener('mouseenter', () => {
+        card.style.transform = 'translateY(-4px)';
+        card.style.boxShadow = '0 0.5rem 1.5rem rgba(0, 0, 0, 0.15)';
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'translateY(0)';
+        card.style.boxShadow = '0 0.25rem 0.75rem rgba(0, 0, 0, 0.1)';
+      });
+
+      // 添加點擊事件：點擊卡片自動填充該景點的分類到搜索
+      card.addEventListener('click', () => {
+        const attraction = previewItems.find(i => i.id === item.id);
+        if (attraction) {
+          const category = attraction.category || attraction.area;
+          if (category) {
+            // 更新分類選單
+            const categorySelect = document.querySelector('ion-select') as any;
+            if (categorySelect) {
+              categorySelect.value = category;
+            }
+            // 停止輪換
+            stopPreviewRotation();
+            // 觸發搜索
+            updateList();
+          }
+        }
+      });
+
+      previewGrid.appendChild(card);
+    });
+
+    previewSection.appendChild(previewGrid);
+    list.appendChild(previewSection);
+  }
 }
 
 /**
@@ -1083,6 +1273,9 @@ async function updateList(): Promise<void> {
   const shouldCallAPI = currentSearch.length > 0 || currentCategory.length > 0;
 
   if (shouldCallAPI) {
+    // 停止預覽輪換（用戶開始搜索）
+    stopPreviewRotation();
+
     // 調用 API 搜尋
     try {
       // 顯示加載動畫
@@ -1115,6 +1308,12 @@ async function updateList(): Promise<void> {
     items = [];
     useLocalData = false;
     hasMoreData = false;
+    
+    // 重新啟動預覽輪換
+    if (previewItems.length > 0) {
+      startPreviewRotation();
+    }
+    
     showSearchPrompt();
   }
 }
@@ -1395,10 +1594,17 @@ async function init(): Promise<void> {
   // 初始化 UI 組件
   try {
     await initAreaChart(); // 餅狀圖通過服務器API獲取（同時填充分類選單）
-    showSearchPrompt(); // 顯示搜索提示
+    
+    // 載入預覽景點並啟動輪換
+    updateLoaderMessage('正在載入精選景點...');
+    await loadRandomPreviewItems(); // 初次加載預覽景點
+    startPreviewRotation(); // 啟動定時輪換
+    
     console.log('✅ UI 組件初始化完成');
   } catch (uiError) {
     console.error('⚠️ UI 初始化失敗:', uiError);
+    // 即使失敗也顯示搜索提示
+    showSearchPrompt();
   }
 
   // 檢查用戶登入狀態並驗證 token 有效性
