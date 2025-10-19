@@ -8,9 +8,7 @@ import { convertText } from './zhconvert';
 import { fetchAttractions, ApiError } from './api';
 
 // 當前狀態
-let currentArea = '';
 let items: (LocalAttraction | Attraction)[] = localAttractions;
-let currentPage = 1;
 let isLoading = false;
 let useLocalData = true; // 控制使用本地數據還是 API 數據
 
@@ -21,7 +19,7 @@ let useLocalData = true; // 控制使用本地數據還是 API 數據
  */
 async function simplifyToTraditional(text: string): Promise<string> {
   if (!text) return '';
-  
+
   try {
     return await convertText(text, 'Taiwan');
   } catch (error) {
@@ -69,7 +67,8 @@ function showError(message: string): void {
 
   const errorItem = document.createElement('ion-item');
   errorItem.className = 'list-item';
-  errorItem.style.cssText = 'background: #ffe6e6; border-left: 4px solid #ff4444;';
+  errorItem.style.cssText =
+    'background: #ffe6e6; border-left: 4px solid #ff4444;';
   errorItem.innerHTML = `
     <div class="item-content" style="padding:1rem;">
       <ion-icon name="alert-circle" color="danger" style="font-size:2rem; margin-bottom:0.5rem;"></ion-icon>
@@ -85,52 +84,68 @@ function showError(message: string): void {
 
 /**
  * 從 API 載入景點資料
+ * @param showErrorUI 是否顯示錯誤 UI（初始化時設為 false）
  */
-async function loadAttractionsFromAPI(options?: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-}): Promise<void> {
+async function loadAttractionsFromAPI(
+  options?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+  },
+  showErrorUI: boolean = true
+): Promise<void> {
   try {
     showLoading();
-    
+
     const response = await fetchAttractions(options);
-    
+
     // 將 API 資料轉換為本地格式以便顯示
-    items = response.items.map((item) => ({
-      name: item.title,
-      area: item.category,
-      openTime: item.description,
-      feature: item.description,
-      image: item.imageUrl,
-      video: item.videoUrl,
-      // 保留 API 原始欄位
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      category: item.category,
-      imageUrl: item.imageUrl,
-      videoUrl: item.videoUrl,
-    } as any));
+    items = response.items.map(
+      (item) =>
+        ({
+          name: item.title,
+          area: item.category,
+          openTime: item.description,
+          feature: item.description,
+          image: item.imageUrl,
+          video: item.videoUrl,
+          // 保留 API 原始欄位
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          category: item.category,
+          imageUrl: item.imageUrl,
+          videoUrl: item.videoUrl,
+        }) as any
+    );
 
     console.log('成功從 API 載入景點:', items.length, '個');
+    useLocalData = false; // 標記為使用 API 數據
     hideLoading();
     updateList();
   } catch (error) {
     hideLoading();
     console.error('載入 API 資料失敗:', error);
-    
-    if (error instanceof ApiError) {
-      showError(`無法載入景點資料：${error.message}`);
-    } else {
-      showError('網路連接錯誤，請檢查您的網路連接');
+
+    // 根據參數決定是否顯示錯誤 UI
+    if (showErrorUI) {
+      if (error instanceof ApiError) {
+        showError(`無法載入景點資料：${error.message}`);
+      } else {
+        showError('網路連接錯誤，請檢查您的網路連接');
+      }
     }
-    
-    // 如果 API 失敗，切換回本地數據
-    useLocalData = true;
-    items = localAttractions;
-    updateList();
+
+    // 如果 API 失敗，確保使用本地數據
+    if (items.length === 0 || useLocalData) {
+      useLocalData = true;
+      items = localAttractions;
+      updateList();
+    }
+
+    // 重新拋出錯誤，讓調用者知道失敗了
+    throw error;
   }
 }
 
@@ -141,15 +156,23 @@ function populateCategories(): void {
   const categorySelect = document.querySelector('ion-select');
   if (!categorySelect) return;
 
+  // 清空現有選項（保留"全部"選項）
+  const allOptions = categorySelect.querySelectorAll('ion-select-option');
+  allOptions.forEach((opt) => {
+    if ((opt as any).value !== '') {
+      opt.remove();
+    }
+  });
+
   // 取得所有唯一地區
   const areas = Array.from(
-    new Set(items.map((item) => item.area || item.category))
+    new Set(items.map((item) => item.area || (item as any).category))
   );
-  
+
   areas.forEach((area) => {
     if (!area) return;
     const option = document.createElement('ion-select-option');
-    option.value = area;
+    (option as any).value = area;
     option.textContent = area;
     categorySelect.appendChild(option);
   });
@@ -209,20 +232,20 @@ async function updateList(): Promise<void> {
   const searchbar = document.querySelector('ion-searchbar') as any;
   const categorySelect = document.querySelector('ion-select') as any;
   const currentSearch = (searchbar?.value || '').trim().toLowerCase();
-  
+
   // 將用戶輸入的簡體字轉換為繁體字
   const currentSearchTrad = await simplifyToTraditional(currentSearch);
   const currentArea = categorySelect?.value || '';
 
   // 過濾資料
   const filteredItems = items.filter((item) => {
-    const itemArea = item.area || item.category || '';
-    const itemName = item.name || item.title || '';
-    const itemFeature = item.feature || item.description || '';
-    
+    const itemArea = item.area || (item as any).category || '';
+    const itemName = item.name || (item as any).title || '';
+    const itemFeature = item.feature || (item as any).description || '';
+
     // 地區過濾
     const matchArea = currentArea ? itemArea === currentArea : true;
-    
+
     // 搜尋過濾
     const matchSearch = currentSearch
       ? itemName.toLowerCase().includes(currentSearch) ||
@@ -232,19 +255,19 @@ async function updateList(): Promise<void> {
         itemFeature.toLowerCase().includes(currentSearch) ||
         itemFeature.includes(currentSearchTrad)
       : true;
-    
+
     return matchArea && matchSearch;
   });
 
   // 渲染過濾後的景點
   filteredItems.forEach((item) => {
-    const itemName = item.name || item.title || '未命名';
-    const itemArea = item.area || item.category || '未知';
-    const itemImage = item.image || item.imageUrl || '';
-    const itemVideo = item.video || item.videoUrl || '';
-    const itemFeature = item.feature || item.description || '暫無描述';
+    const itemName = item.name || (item as any).title || '未命名';
+    const itemArea = item.area || (item as any).category || '未知';
+    const itemImage = item.image || (item as any).imageUrl || '';
+    const itemVideo = item.video || (item as any).videoUrl || '';
+    const itemFeature = item.feature || (item as any).description || '暫無描述';
     const itemOpenTime = item.openTime || '請查詢官方資訊';
-    
+
     const listItem = document.createElement('ion-item');
     listItem.className = 'list-item';
     listItem.innerHTML = `
@@ -268,12 +291,16 @@ async function updateList(): Promise<void> {
         <!-- 標籤（地區）和影片按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" data-area="${itemArea}">${itemArea}</ion-chip>
-          ${itemVideo ? `
+          ${
+            itemVideo
+              ? `
           <ion-chip size="small" color="primary" data-video="${itemVideo}" data-title="${itemName} 導覽影片">
             <ion-icon name="play" slot="start"></ion-icon>
             導覽影片
           </ion-chip>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       </div>
     `;
@@ -317,8 +344,6 @@ function attachEventListeners(): void {
  * 點擊標籤過濾（地區）
  */
 function filterByArea(area: string): void {
-  currentArea = area;
-
   // 更新分類選單的值
   const categorySelect = document.querySelector('ion-select') as any;
   if (categorySelect) {
@@ -329,6 +354,9 @@ function filterByArea(area: string): void {
   updateList();
 }
 
+// 儲存圖表實例以便後續更新或銷毀
+let chartInstance: any = null;
+
 /**
  * 繪製地區分佈圖表
  */
@@ -336,7 +364,7 @@ function initAreaChart(): void {
   // 統計每個地區的景點數量
   const areaCount: { [key: string]: number } = {};
   items.forEach((item) => {
-    const area = item.area || item.category || '未知';
+    const area = item.area || (item as any).category || '未知';
     if (areaCount[area]) {
       areaCount[area]++;
     } else {
@@ -364,7 +392,18 @@ function initAreaChart(): void {
   if (!ctx) return;
 
   if (typeof (window as any).Chart !== 'undefined') {
-    new (window as any).Chart(ctx, {
+    // 如果已經存在圖表實例，先銷毀它
+    if (chartInstance) {
+      try {
+        chartInstance.destroy();
+        console.log('舊圖表已銷毀');
+      } catch (e) {
+        console.warn('銷毀舊圖表失敗:', e);
+      }
+    }
+
+    // 創建新的圖表實例
+    chartInstance = new (window as any).Chart(ctx, {
       type: 'pie',
       data: {
         labels: areas,
@@ -408,6 +447,7 @@ function initAreaChart(): void {
         },
       },
     });
+    console.log('圖表已初始化');
   }
 }
 
@@ -449,16 +489,37 @@ function initEventListeners(): void {
  */
 async function init(): Promise<void> {
   console.log('=== 應用程式初始化 ===');
-  console.log('使用本地數據模式');
-  
-  // 先顯示本地數據
+
+  // 初始化事件監聽器
+  initEventListeners();
+
+  // 先顯示本地數據作為備用
+  items = localAttractions;
   populateCategories();
   initAreaChart();
   updateList();
-  initEventListeners();
-  
+
+  console.log('本地數據已載入（備用）');
+
+  // 嘗試從 API 載入數據
+  console.log('正在嘗試從 API 載入景點資料...');
+  try {
+    await loadAttractionsFromAPI({ page: 1, limit: 20 }, false); // 不顯示錯誤 UI
+    console.log('✅ 成功從 API 載入數據');
+
+    // API 成功後重新初始化圖表和分類
+    try {
+      populateCategories();
+      initAreaChart();
+    } catch (chartError) {
+      console.warn('⚠️ 圖表初始化失敗（不影響功能）:', chartError);
+    }
+  } catch (error) {
+    console.log('⚠️ API 載入失敗，繼續使用本地數據');
+    console.log('💡 提示：可在控制台執行 loadAttractionsFromAPI() 重試');
+  }
+
   console.log('初始化完成！');
-  console.log('提示：如需測試 API，請在控制台執行: loadAttractionsFromAPI()');
 }
 
 // 當 DOM 載入完成後初始化
