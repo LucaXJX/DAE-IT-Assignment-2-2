@@ -5,7 +5,14 @@
 import { LocalAttraction, Attraction } from './types';
 import { localAttractions } from './data';
 import { convertText } from './zhconvert';
-import { fetchAttractions, ApiError } from './api';
+import {
+  fetchAttractions,
+  ApiError,
+  login,
+  signup,
+  logout,
+  isLoggedIn,
+} from './api';
 
 // 當前狀態
 let items: (LocalAttraction | Attraction)[] = localAttractions;
@@ -20,6 +27,9 @@ let appLoader: HTMLElement | null = null;
 let loaderMessage: HTMLElement | null = null;
 let retryInfo: HTMLElement | null = null;
 let retryText: HTMLElement | null = null;
+
+// 認證狀態
+let currentUsername: string | null = null;
 
 /**
  * 初始化全屏載入器
@@ -90,6 +100,217 @@ async function simplifyToTraditional(text: string): Promise<string> {
   } catch (error) {
     console.error('轉換失敗，使用原文:', error);
     return text;
+  }
+}
+
+/**
+ * 打開認證 Modal
+ */
+function openAuthModal(tab: 'login' | 'signup' = 'login'): void {
+  const modal = document.getElementById('authModal');
+  if (!modal) return;
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // 切換到指定標籤
+  switchAuthTab(tab);
+}
+
+/**
+ * 關閉認證 Modal
+ */
+function closeAuthModal(): void {
+  const modal = document.getElementById('authModal');
+  if (!modal) return;
+
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+
+  // 清空表單
+  const loginForm = document.getElementById(
+    'loginFormElement'
+  ) as HTMLFormElement;
+  const signupForm = document.getElementById(
+    'signupFormElement'
+  ) as HTMLFormElement;
+  if (loginForm) loginForm.reset();
+  if (signupForm) signupForm.reset();
+}
+
+/**
+ * 切換認證標籤
+ */
+function switchAuthTab(tab: 'login' | 'signup'): void {
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const tabs = document.querySelectorAll('.auth-tab');
+
+  tabs.forEach((t) => {
+    if (t.getAttribute('data-tab') === tab) {
+      t.classList.add('active');
+    } else {
+      t.classList.remove('active');
+    }
+  });
+
+  if (tab === 'login') {
+    loginForm?.classList.remove('hidden');
+    signupForm?.classList.add('hidden');
+  } else {
+    loginForm?.classList.add('hidden');
+    signupForm?.classList.remove('hidden');
+  }
+}
+
+/**
+ * 處理登入
+ */
+async function handleLogin(event: Event): Promise<void> {
+  event.preventDefault();
+
+  const usernameInput = document.getElementById('loginUsername') as any;
+  const passwordInput = document.getElementById('loginPassword') as any;
+  const loginBtn = document.getElementById('loginBtn') as any;
+
+  const username = usernameInput?.value?.trim();
+  const password = passwordInput?.value;
+
+  if (!username || !password) {
+    await showError('請輸入使用者名稱和密碼');
+    return;
+  }
+
+  try {
+    // 禁用按鈕並顯示載入狀態
+    if (loginBtn) {
+      loginBtn.disabled = true;
+      loginBtn.innerHTML =
+        '<ion-spinner name="crescent"></ion-spinner> 登入中...';
+    }
+
+    await login(username, password);
+
+    currentUsername = username;
+    localStorage.setItem('username', username); // 保存用戶名
+
+    await showSuccess(`歡迎回來，${username}！`);
+    closeAuthModal();
+    updateAuthUI();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      await showError(`登入失敗：${error.message}`);
+    } else {
+      await showError('登入失敗，請檢查網路連接');
+    }
+  } finally {
+    // 恢復按鈕狀態
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML =
+        '<ion-icon name="log-in-outline" slot="start"></ion-icon> 登入';
+    }
+  }
+}
+
+/**
+ * 處理註冊
+ */
+async function handleSignup(event: Event): Promise<void> {
+  event.preventDefault();
+
+  const usernameInput = document.getElementById('signupUsername') as any;
+  const passwordInput = document.getElementById('signupPassword') as any;
+  const confirmInput = document.getElementById('signupPasswordConfirm') as any;
+  const signupBtn = document.getElementById('signupBtn') as any;
+
+  const username = usernameInput?.value?.trim();
+  const password = passwordInput?.value;
+  const confirm = confirmInput?.value;
+
+  if (!username || !password || !confirm) {
+    await showError('請填寫所有欄位');
+    return;
+  }
+
+  if (username.length < 3) {
+    await showError('使用者名稱至少需要 3 個字元');
+    return;
+  }
+
+  if (password.length < 6) {
+    await showError('密碼至少需要 6 個字元');
+    return;
+  }
+
+  if (password !== confirm) {
+    await showError('兩次輸入的密碼不一致');
+    return;
+  }
+
+  try {
+    // 禁用按鈕並顯示載入狀態
+    if (signupBtn) {
+      signupBtn.disabled = true;
+      signupBtn.innerHTML =
+        '<ion-spinner name="crescent"></ion-spinner> 註冊中...';
+    }
+
+    await signup(username, password);
+
+    currentUsername = username;
+    localStorage.setItem('username', username); // 保存用戶名
+
+    await showSuccess(`註冊成功！歡迎，${username}！`);
+    closeAuthModal();
+    updateAuthUI();
+  } catch (error) {
+    if (error instanceof ApiError) {
+      await showError(`註冊失敗：${error.message}`);
+    } else {
+      await showError('註冊失敗，請檢查網路連接');
+    }
+  } finally {
+    // 恢復按鈕狀態
+    if (signupBtn) {
+      signupBtn.disabled = false;
+      signupBtn.innerHTML =
+        '<ion-icon name="person-add-outline" slot="start"></ion-icon> 註冊';
+    }
+  }
+}
+
+/**
+ * 處理登出
+ */
+async function handleLogout(): Promise<void> {
+  logout();
+  currentUsername = null;
+  localStorage.removeItem('username'); // 清除用戶名
+  updateAuthUI();
+  await showSuccess('已成功登出');
+}
+
+/**
+ * 更新認證 UI
+ */
+function updateAuthUI(): void {
+  const loginBtn = document.getElementById('loginHeaderBtn');
+  const userBtn = document.getElementById('userHeaderBtn');
+  const logoutBtn = document.getElementById('logoutHeaderBtn');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+
+  if (isLoggedIn() && currentUsername) {
+    // 已登入狀態
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userBtn) userBtn.style.display = 'block';
+    if (logoutBtn) logoutBtn.style.display = 'block';
+    if (usernameDisplay) usernameDisplay.textContent = currentUsername;
+  } else {
+    // 未登入狀態
+    if (loginBtn) loginBtn.style.display = 'block';
+    if (userBtn) userBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'none';
   }
 }
 
@@ -677,6 +898,53 @@ function initEventListeners(): void {
   if (categorySelect) {
     categorySelect.addEventListener('ionChange', () => updateList());
   }
+
+  // 認證相關事件監聽
+  const loginHeaderBtn = document.getElementById('loginHeaderBtn');
+  if (loginHeaderBtn) {
+    loginHeaderBtn.addEventListener('click', () => openAuthModal('login'));
+  }
+
+  const authCloseBtn = document.getElementById('authCloseBtn');
+  if (authCloseBtn) {
+    authCloseBtn.addEventListener('click', closeAuthModal);
+  }
+
+  const logoutHeaderBtn = document.getElementById('logoutHeaderBtn');
+  if (logoutHeaderBtn) {
+    logoutHeaderBtn.addEventListener('click', handleLogout);
+  }
+
+  // 認證標籤切換
+  const authTabs = document.querySelectorAll('.auth-tab');
+  authTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const tabType = tab.getAttribute('data-tab') as 'login' | 'signup';
+      if (tabType) switchAuthTab(tabType);
+    });
+  });
+
+  // 登入表單提交
+  const loginFormElement = document.getElementById('loginFormElement');
+  if (loginFormElement) {
+    loginFormElement.addEventListener('submit', handleLogin);
+  }
+
+  // 註冊表單提交
+  const signupFormElement = document.getElementById('signupFormElement');
+  if (signupFormElement) {
+    signupFormElement.addEventListener('submit', handleSignup);
+  }
+
+  // 點擊 Modal 外部關閉
+  const authModal = document.getElementById('authModal');
+  if (authModal) {
+    authModal.addEventListener('click', function (e) {
+      if (e.target === this) {
+        closeAuthModal();
+      }
+    });
+  }
 }
 
 /**
@@ -731,6 +999,15 @@ async function init(): Promise<void> {
   } catch (uiError) {
     console.error('⚠️ UI 初始化失敗:', uiError);
   }
+
+  // 檢查用戶登入狀態
+  if (isLoggedIn()) {
+    currentUsername = localStorage.getItem('username');
+    console.log('用戶已登入:', currentUsername);
+  }
+
+  // 更新認證 UI
+  updateAuthUI();
 
   // 短暫延遲後隱藏載入器，讓用戶看到完整準備好的頁面
   setTimeout(() => {
