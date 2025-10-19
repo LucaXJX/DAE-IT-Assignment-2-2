@@ -407,24 +407,31 @@ async function loadAttractionsFromAPI(
 
     const response = await fetchAttractions(options);
 
-    // 將 API 資料轉換為本地格式以便顯示
+    // 將 API 資料轉換為統一格式（蛇形命名 → 駝峰命名）
     const newItems = response.items.map(
       (item) =>
         ({
-          name: item.title,
-          area: item.category,
-          openTime: item.description,
-          feature: item.description,
-          image: item.imageUrl,
-          video: item.videoUrl,
-          // 保留 API 原始欄位
+          // API 原始欄位（駝峰命名）
           id: item.id,
           title: item.title,
           description: item.description,
           category: item.category,
-          imageUrl: item.imageUrl,
-          videoUrl: item.videoUrl,
-        }) as any
+          imageUrl: item.image_url, // 蛇形 → 駝峰
+          videoUrl: item.video_url, // 蛇形 → 駝峰
+          openingHours: item.opening_hours,
+          address: item.address,
+          city: item.city,
+          country: item.country,
+          tags: item.tags,
+          facilities: item.facilities,
+          // 兼容本地資料欄位
+          name: item.title,
+          area: item.category,
+          openTime: item.opening_hours || '請查詢官方資訊',
+          feature: item.description,
+          image: item.image_url,
+          video: item.video_url,
+        }) as Attraction
     );
 
     if (append) {
@@ -630,18 +637,36 @@ async function updateList(): Promise<void> {
 
   // 渲染過濾後的景點
   filteredItems.forEach((item) => {
-    const itemName = item.name || (item as any).title || '未命名';
-    const itemArea = item.area || (item as any).category || '未知';
-    const itemImage = item.image || (item as any).imageUrl || '';
-    const itemVideo = item.video || (item as any).videoUrl || '';
-    const itemFeature = item.feature || (item as any).description || '暫無描述';
-    const itemOpenTime = item.openTime || '請查詢官方資訊';
+    const attraction = item as Attraction;
+    const itemName = item.name || attraction.title || '未命名';
+    const itemArea = item.area || attraction.category || '未知';
+    const itemImage = item.image || attraction.imageUrl || '';
+    const itemVideo = item.video || attraction.videoUrl || '';
+    const itemFeature = item.feature || attraction.description || '暫無描述';
+    const itemOpenTime =
+      item.openTime || attraction.openingHours || '請查詢官方資訊';
+    const itemAddress = attraction.address || '';
+    const itemCity = attraction.city || '';
+    const itemTags = attraction.tags || [];
+    const itemFacilities = attraction.facilities || [];
 
     const listItem = document.createElement('ion-item');
     listItem.className = 'list-item';
 
     // 根據數據來源決定標籤文字
     const areaLabel = useLocalData ? '地區' : '分類';
+
+    // 構建地址信息
+    const addressInfo =
+      itemCity || itemAddress
+        ? `<p>📍 ${itemCity ? itemCity + (itemAddress ? ' - ' : '') : ''}${itemAddress}</p>`
+        : '';
+
+    // 構建設施信息
+    const facilitiesInfo =
+      itemFacilities.length > 0
+        ? `<p>🏢 設施：${itemFacilities.slice(0, 4).join('、')}${itemFacilities.length > 4 ? '...' : ''}</p>`
+        : '';
 
     listItem.innerHTML = `
       <div class="item-content">
@@ -658,12 +683,20 @@ async function updateList(): Promise<void> {
         <div class="item-subtitle">${areaLabel}：${itemArea}</div>
         <!-- 開放時間和特色 -->
         <div class="item-details">
-          <p>開放時間：${itemOpenTime}</p>
-          <p>特色：${itemFeature}</p>
+          <p>⏰ 開放時間：${itemOpenTime}</p>
+          ${addressInfo}
+          <p>✨ 特色：${itemFeature}</p>
+          ${facilitiesInfo}
         </div>
         <!-- 標籤（地區/分類）和影片按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" data-area="${itemArea}">${itemArea}</ion-chip>
+          ${itemTags
+            .slice(0, 3)
+            .map(
+              (tag) => `<ion-chip size="small" outline="true">${tag}</ion-chip>`
+            )
+            .join('')}
           ${
             itemVideo
               ? `

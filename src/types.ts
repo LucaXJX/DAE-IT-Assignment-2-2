@@ -1,14 +1,41 @@
 /**
- * 景點資料類型定義
+ * API 返回的景點資料類型（蛇形命名）
+ */
+export interface ApiAttraction {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  image_url: string;  // API 使用下劃線
+  video_url: string;  // API 使用下劃線
+  opening_hours?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  tags?: string[];
+  facilities?: string[];
+  published_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * 統一的景點資料類型（駝峰命名，用於內部使用）
  */
 export interface Attraction {
   id: number;
   title: string;
   description: string;
   category: string;
-  imageUrl: string;
-  videoUrl: string;
-  // 本地資料欄位
+  imageUrl: string;  // 駝峰命名
+  videoUrl: string;  // 駝峰命名
+  openingHours?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  tags?: string[];
+  facilities?: string[];
+  // 本地資料欄位（兼容舊代碼）
   name?: string;
   area?: string;
   openTime?: string;
@@ -18,10 +45,10 @@ export interface Attraction {
 }
 
 /**
- * API 回應 - 景點列表
+ * API 回應 - 景點列表（使用 API 原始格式）
  */
 export interface AttractionListResponse {
-  items: Attraction[];
+  items: ApiAttraction[];
   pagination: {
     page: number;
     limit: number;
