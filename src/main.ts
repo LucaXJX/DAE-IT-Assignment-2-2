@@ -377,8 +377,14 @@ async function handleBookmark(
 ): Promise<void> {
   // 檢查是否已登入
   if (!isLoggedIn()) {
-    await showError('請先登入才能使用收藏功能');
-    openAuthModal('login');
+    // 先顯示提示訊息（縮短時間到 2 秒）
+    showError('請先登入才能使用收藏功能', 2000);
+
+    // 延遲 1.2 秒後打開登入視窗，讓用戶有時間看到提示
+    setTimeout(() => {
+      openAuthModal('login');
+    }, 1200);
+
     return;
   }
 
