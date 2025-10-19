@@ -46,6 +46,46 @@ let previewItems: Attraction[] = []; // 存儲預覽景點
 let previewRotationTimer: number | null = null; // 預覽景點輪換計時器
 
 /**
+ * HTML 轉義函數（防止 XSS 攻擊）
+ */
+function escapeHtml(unsafe: string): string {
+  if (!unsafe) return '';
+
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * 驗證 URL 是否安全（僅允許 https 和合法域名）
+ */
+function sanitizeUrl(url: string): string {
+  if (!url) return '';
+
+  // 移除潛在的 javascript: 協議
+  if (url.toLowerCase().startsWith('javascript:')) {
+    console.warn('⚠️ 阻止不安全的 URL:', url);
+    return '';
+  }
+
+  // 確保是 https 或相對路徑
+  if (
+    url.startsWith('http://') ||
+    url.startsWith('https://') ||
+    url.startsWith('img/') ||
+    url.startsWith('/')
+  ) {
+    return url;
+  }
+
+  console.warn('⚠️ 阻止不安全的 URL:', url);
+  return '';
+}
+
+/**
  * 初始化全屏載入器
  */
 function initAppLoader(): void {
@@ -827,17 +867,35 @@ function openVideoModal(videoUrl: string, title: string): void {
 
   modalTitle.textContent = title;
 
-  // 處理 YouTube 鏈接
-  let embedUrl = videoUrl;
+  // 處理 YouTube 鏈接（安全驗證）
+  let embedUrl = sanitizeUrl(videoUrl);
+
   if (videoUrl.includes('youtube.com/watch?v=')) {
     const videoId = videoUrl.split('v=')[1].split('&')[0];
-    embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    // 只允許字母、數字、連字符和底線
+    if (/^[a-zA-Z0-9_-]+$/.test(videoId)) {
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else {
+      console.warn('⚠️ 非法的 YouTube 影片 ID:', videoId);
+      return;
+    }
   } else if (videoUrl.includes('youtu.be/')) {
     const videoId = videoUrl.split('youtu.be/')[1].split('?')[0];
-    embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    if (/^[a-zA-Z0-9_-]+$/.test(videoId)) {
+      embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    } else {
+      console.warn('⚠️ 非法的 YouTube 影片 ID:', videoId);
+      return;
+    }
   }
 
-  videoContainer.innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+  // 使用 DOM API 而非 innerHTML
+  const iframe = document.createElement('iframe');
+  iframe.src = embedUrl;
+  iframe.setAttribute('allowfullscreen', '');
+  iframe.setAttribute('frameborder', '0');
+  videoContainer.innerHTML = ''; // 清空
+  videoContainer.appendChild(iframe);
   modal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -1057,17 +1115,20 @@ function stopPreviewRotation(): void {
  * 渲染預覽景點卡片
  */
 function renderPreviewItem(item: Attraction): string {
-  const itemName = item.name || item.title || '未命名';
-  const itemArea = item.area || item.category || '未知';
-  const itemImage = item.image || item.imageUrl || '';
-  const itemFeature = item.feature || item.description || '暫無描述';
+  // 安全轉義所有文字內容（防止 XSS）
+  const itemName = escapeHtml(item.name || item.title || '未命名');
+  const itemArea = escapeHtml(item.area || item.category || '未知');
+  const itemImage = sanitizeUrl(item.image || item.imageUrl || '');
+  const itemFeature = escapeHtml(
+    item.feature || item.description || '暫無描述'
+  );
   const shortFeature =
     itemFeature.length > 60
       ? itemFeature.substring(0, 60) + '...'
       : itemFeature;
 
   return `
-    <div class="preview-card" data-preview-id="${item.id}">
+    <div class="preview-card" data-preview-id="${item.id || 0}">
       <div class="image-container" style="height: 9.375rem; overflow: hidden;">
         <img src="${itemImage}" alt="${itemName}" 
              style="width: 100%; height: 100%; object-fit: cover;"
@@ -1189,17 +1250,24 @@ function renderList(): void {
   // 渲染景點
   filteredItems.forEach((item) => {
     const attraction = item as Attraction;
-    const itemName = item.name || attraction.title || '未命名';
-    const itemArea = item.area || attraction.category || '未知';
-    const itemImage = item.image || attraction.imageUrl || '';
-    const itemVideo = item.video || attraction.videoUrl || '';
-    const itemFeature = item.feature || attraction.description || '暫無描述';
-    const itemOpenTime =
-      item.openTime || attraction.openingHours || '請查詢官方資訊';
-    const itemAddress = attraction.address || '';
-    const itemCity = attraction.city || '';
-    const itemTags = attraction.tags || [];
-    const itemFacilities = attraction.facilities || [];
+
+    // 安全轉義所有文字內容（防止 XSS）
+    const itemName = escapeHtml(item.name || attraction.title || '未命名');
+    const itemArea = escapeHtml(item.area || attraction.category || '未知');
+    const itemImage = sanitizeUrl(item.image || attraction.imageUrl || '');
+    const itemVideo = sanitizeUrl(item.video || attraction.videoUrl || '');
+    const itemFeature = escapeHtml(
+      item.feature || attraction.description || '暫無描述'
+    );
+    const itemOpenTime = escapeHtml(
+      item.openTime || attraction.openingHours || '請查詢官方資訊'
+    );
+    const itemAddress = escapeHtml(attraction.address || '');
+    const itemCity = escapeHtml(attraction.city || '');
+    const itemTags = (attraction.tags || []).map((tag) => escapeHtml(tag));
+    const itemFacilities = (attraction.facilities || []).map((f) =>
+      escapeHtml(f)
+    );
 
     const listItem = document.createElement('ion-item');
     listItem.className = 'list-item';
@@ -1207,13 +1275,13 @@ function renderList(): void {
     // 根據數據來源決定標籤文字
     const areaLabel = useLocalData ? '地區' : '分類';
 
-    // 構建地址信息
+    // 構建地址信息（已轉義）
     const addressInfo =
       itemCity || itemAddress
         ? `<p>📍 ${itemCity ? itemCity + (itemAddress ? ' - ' : '') : ''}${itemAddress}</p>`
         : '';
 
-    // 構建設施信息
+    // 構建設施信息（已轉義）
     const facilitiesInfo =
       itemFacilities.length > 0
         ? `<p>🏢 設施：${itemFacilities.slice(0, 4).join('、')}${itemFacilities.length > 4 ? '...' : ''}</p>`
