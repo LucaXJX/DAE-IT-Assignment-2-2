@@ -119,10 +119,13 @@
       @media (min-width: 768px) {
         ion-list {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(18rem, 100%), 1fr)
+          );
           gap: 1rem;
           padding: 1rem;
-          max-width: 1400px;
+          max-width: 87.5rem;
           margin: 0 auto;
         }
 
@@ -154,7 +157,10 @@
       /* 大屏幕：更多列 */
       @media (min-width: 1200px) {
         ion-list {
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          grid-template-columns: repeat(
+            auto-fill,
+            minmax(min(20rem, 100%), 1fr)
+          );
           gap: 1.25rem;
           padding: 1.25rem;
         }
@@ -172,7 +178,7 @@
       @media (min-width: 1600px) {
         ion-list {
           grid-template-columns: repeat(4, 1fr);
-          max-width: 1800px;
+          max-width: 112.5rem;
         }
       }
 
@@ -196,9 +202,54 @@
       /* 確保載入更多按鈕和空狀態在網格中佔滿寬度 */
       @media (min-width: 768px) {
         .load-more-container,
-        .empty-state {
+        .empty-state,
+        .preview-section {
           grid-column: 1 / -1;
         }
+      }
+
+      /* 預覽景點網格佈局 */
+      .preview-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        max-width: 75rem;
+        margin: 0 auto;
+      }
+
+      /* 平板及以上：2-3 列 */
+      @media (min-width: 600px) {
+        .preview-grid {
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(min(16rem, 100%), 1fr)
+          );
+        }
+      }
+
+      /* 大屏幕：確保最多 3 列 */
+      @media (min-width: 1024px) {
+        .preview-grid {
+          grid-template-columns: repeat(3, 1fr);
+          max-width: 60rem;
+        }
+      }
+
+      /* 預覽卡片樣式 */
+      .preview-card {
+        background: white;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+        cursor: pointer;
+      }
+
+      .preview-card:hover {
+        transform: translateY(-0.25rem);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
       }
 
       /* 圖片容器 */

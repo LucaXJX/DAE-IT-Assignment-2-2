@@ -942,13 +942,18 @@ function showPreviewLoading(): void {
   if (!list) return;
 
   list.innerHTML = `
-    <div class="load-more-container" style="text-align:center; padding:3rem 1.5rem;">
-      <ion-icon name="search-outline" style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;"></ion-icon>
-      <h2 style="color: #2d3243; margin: 1rem 0;">開始探索景點</h2>
-      <p style="color: #666; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
-        使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
-      </p>
-      <div style="margin-top: 2rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+    <div class="load-more-container" style="text-align:center; padding:2rem 1.5rem;">
+      <!-- Icon 在左，文字在右，緊湊佈局 -->
+      <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem;">
+        <ion-icon name="search-outline" style="font-size: 2.5rem; color: #667eea; flex-shrink: 0;"></ion-icon>
+        <div style="text-align: left;">
+          <h2 style="color: #2d3243; margin: 0; font-size: 1.4rem;">開始探索景點</h2>
+          <p style="color: #666; font-size: 0.9rem; margin: 0.25rem 0 0 0;">
+            使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
+          </p>
+        </div>
+      </div>
+      <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
         <ion-spinner name="crescent" style="margin-right: 0.5rem;"></ion-spinner>
         <span style="color: #667eea;">正在載入精選景點...</span>
       </div>
@@ -1062,9 +1067,8 @@ function renderPreviewItem(item: Attraction): string {
       : itemFeature;
 
   return `
-    <div class="preview-card" style="background: white; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1); transition: transform 0.2s ease; cursor: pointer;" 
-         data-preview-id="${item.id}">
-      <div class="image-container" style="height: 150px; overflow: hidden;">
+    <div class="preview-card" data-preview-id="${item.id}">
+      <div class="image-container" style="height: 9.375rem; overflow: hidden;">
         <img src="${itemImage}" alt="${itemName}" 
              style="width: 100%; height: 100%; object-fit: cover;"
              onload="this.style.display='block'"
@@ -1099,14 +1103,19 @@ function showSearchPrompt(): void {
 
   const promptItem = document.createElement('div');
   promptItem.className = 'load-more-container';
-  promptItem.style.cssText = 'text-align:center; padding:3rem 1.5rem 1.5rem;';
+  promptItem.style.cssText = 'text-align:center; padding:2rem 1.5rem 1.5rem;';
   promptItem.innerHTML = `
-    <ion-icon name="search-outline" style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;"></ion-icon>
-    <h2 style="color: #2d3243; margin: 1rem 0;">開始探索景點</h2>
-    <p style="color: #666; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
-      使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
-    </p>
-    <div style="margin-top: 2rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+    <!-- Icon 在左，文字在右，緊湊佈局 -->
+    <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem;">
+      <ion-icon name="search-outline" style="font-size: 2.5rem; color: #667eea; flex-shrink: 0;"></ion-icon>
+      <div style="text-align: left;">
+        <h2 style="color: #2d3243; margin: 0; font-size: 1.4rem;">開始探索景點</h2>
+        <p style="color: #666; font-size: 0.9rem; margin: 0.25rem 0 0 0;">
+          使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
+        </p>
+      </div>
+    </div>
+    <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
       <ion-icon name="information-circle-outline" style="font-size: 1.5rem; color: #667eea; vertical-align: middle;"></ion-icon>
       <span style="color: #667eea; margin-left: 0.5rem;">輸入景點名稱、地區或特色開始搜尋</span>
     </div>
@@ -1134,28 +1143,11 @@ function showSearchPrompt(): void {
 
     const previewGrid = document.createElement('div');
     previewGrid.className = 'preview-grid';
-    previewGrid.style.cssText = `
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    `;
 
     previewItems.forEach((item) => {
       const cardWrapper = document.createElement('div');
       cardWrapper.innerHTML = renderPreviewItem(item);
       const card = cardWrapper.firstElementChild as HTMLElement;
-
-      // 添加懸停效果
-      card.addEventListener('mouseenter', () => {
-        card.style.transform = 'translateY(-4px)';
-        card.style.boxShadow = '0 0.5rem 1.5rem rgba(0, 0, 0, 0.15)';
-      });
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '0 0.25rem 0.75rem rgba(0, 0, 0, 0.1)';
-      });
 
       // 添加點擊事件：點擊卡片自動填充該景點的分類到搜索
       card.addEventListener('click', () => {
