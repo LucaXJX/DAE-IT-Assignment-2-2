@@ -15,6 +15,7 @@ import {
   checkAuth,
   addBookmark,
   removeBookmark,
+  getBookmarks,
 } from './api';
 
 // 當前狀態
@@ -33,6 +34,9 @@ let retryText: HTMLElement | null = null;
 
 // 認證狀態
 let currentUsername: string | null = null;
+
+// 收藏狀態
+let bookmarkedItems: Set<number> = new Set(); // 存儲已收藏的項目 ID
 
 /**
  * 初始化全屏載入器
@@ -200,6 +204,9 @@ async function handleLogin(event: Event): Promise<void> {
     await showSuccess(`歡迎回來，${username}！`);
     closeAuthModal();
     updateAuthUI();
+
+    // 載入用戶的收藏列表
+    await loadUserBookmarks();
   } catch (error) {
     if (error instanceof ApiError) {
       // 優化特定錯誤消息
@@ -277,6 +284,9 @@ async function handleSignup(event: Event): Promise<void> {
     await showSuccess(`註冊成功！歡迎，${username}！`);
     closeAuthModal();
     updateAuthUI();
+
+    // 載入用戶的收藏列表（新用戶應該是空的）
+    await loadUserBookmarks();
   } catch (error) {
     if (error instanceof ApiError) {
       // 優化特定錯誤消息
@@ -307,12 +317,20 @@ async function handleLogout(): Promise<void> {
   logout();
   currentUsername = null;
   localStorage.removeItem('username'); // 清除用戶名
+
+  // 清除收藏狀態
+  bookmarkedItems.clear();
+
   updateAuthUI();
+
+  // 更新所有收藏按鈕為未收藏狀態
+  updateAllBookmarkButtons();
+
   await showSuccess('已成功登出');
 }
 
 /**
- * 處理收藏功能
+ * 處理收藏/取消收藏功能（步驟 17）
  */
 async function handleBookmark(
   itemId: number,
@@ -322,44 +340,128 @@ async function handleBookmark(
   // 檢查是否已登入
   if (!isLoggedIn()) {
     await showError('請先登入才能使用收藏功能');
-    // 打開登入 Modal
     openAuthModal('login');
     return;
   }
+
+  const isBookmarked = bookmarkedItems.has(itemId);
 
   try {
     // 禁用按鈕，顯示載入狀態
     buttonElement.style.pointerEvents = 'none';
     buttonElement.style.opacity = '0.6';
 
-    // 調用收藏 API
-    const result = await addBookmark(itemId);
+    if (isBookmarked) {
+      // 取消收藏
+      const result = await removeBookmark(itemId);
+      bookmarkedItems.delete(itemId);
 
-    // 根據返回結果顯示消息
-    if (result.message === 'newly bookmarked') {
-      await showSuccess(`已收藏 ${itemName}`);
-    } else if (result.message === 'already bookmarked') {
-      await showSuccess(`${itemName} 已在收藏清單中`);
+      if (result.message === 'newly deleted') {
+        await showSuccess(`已取消收藏 ${itemName}`);
+      }
+
+      // 更新按鈕為未收藏狀態
+      updateBookmarkButton(buttonElement, false);
+      console.log('✅ 取消收藏成功:', result);
+    } else {
+      // 添加收藏
+      const result = await addBookmark(itemId);
+      bookmarkedItems.add(itemId);
+
+      if (result.message === 'newly bookmarked') {
+        await showSuccess(`已收藏 ${itemName}`);
+      } else if (result.message === 'already bookmarked') {
+        await showSuccess(`${itemName} 已在收藏清單中`);
+      }
+
+      // 更新按鈕為已收藏狀態
+      updateBookmarkButton(buttonElement, true);
+      console.log('✅ 收藏成功:', result);
     }
-
-    console.log('收藏結果:', result);
   } catch (error) {
     if (error instanceof ApiError) {
       if (error.message.includes('請先登入')) {
         await showError('登入狀態已過期，請重新登入');
         openAuthModal('login');
       } else {
-        await showError(`收藏失敗：${error.message}`);
+        await showError(`操作失敗：${error.message}`);
       }
     } else {
-      await showError('收藏失敗，請稍後再試');
+      await showError('操作失敗，請稍後再試');
     }
-    console.error('收藏錯誤:', error);
+    console.error('收藏操作錯誤:', error);
   } finally {
     // 恢復按鈕狀態
     buttonElement.style.pointerEvents = '';
     buttonElement.style.opacity = '';
   }
+}
+
+/**
+ * 更新收藏按鈕的視覺狀態（步驟 18）
+ */
+function updateBookmarkButton(
+  buttonElement: HTMLElement,
+  isBookmarked: boolean
+): void {
+  const icon = buttonElement.querySelector('ion-icon');
+  const textNode = Array.from(buttonElement.childNodes).find(
+    (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()
+  );
+
+  if (isBookmarked) {
+    // 已收藏狀態：實心紅心
+    if (icon) icon.setAttribute('name', 'heart');
+    if (textNode) textNode.textContent = ' 已收藏';
+    buttonElement.style.setProperty('--background', '#eb445a');
+    buttonElement.style.setProperty('--color', 'white');
+  } else {
+    // 未收藏狀態：空心紅心
+    if (icon) icon.setAttribute('name', 'heart-outline');
+    if (textNode) textNode.textContent = ' 收藏';
+    buttonElement.style.setProperty('--background', 'transparent');
+    buttonElement.style.setProperty('--color', '#eb445a');
+  }
+}
+
+/**
+ * 載入用戶的收藏列表（步驟 19）
+ */
+async function loadUserBookmarks(): Promise<void> {
+  if (!isLoggedIn()) {
+    console.log('用戶未登入，跳過載入收藏列表');
+    bookmarkedItems.clear();
+    return;
+  }
+
+  try {
+    console.log('正在載入用戶收藏列表...');
+    const response = await getBookmarks();
+
+    // 更新收藏狀態
+    bookmarkedItems = new Set(response.item_ids);
+    console.log(`✅ 成功載入收藏列表，共 ${bookmarkedItems.size} 個項目`);
+
+    // 更新所有收藏按鈕的視覺狀態
+    updateAllBookmarkButtons();
+  } catch (error) {
+    console.error('❌ 載入收藏列表失敗:', error);
+    // 載入失敗時清空收藏狀態
+    bookmarkedItems.clear();
+  }
+}
+
+/**
+ * 更新所有收藏按鈕的視覺狀態
+ */
+function updateAllBookmarkButtons(): void {
+  document.querySelectorAll('.bookmark-btn').forEach((button) => {
+    const itemId = button.getAttribute('data-item-id');
+    if (itemId) {
+      const isBookmarked = bookmarkedItems.has(parseInt(itemId));
+      updateBookmarkButton(button as HTMLElement, isBookmarked);
+    }
+  });
 }
 
 /**
@@ -822,6 +924,9 @@ async function updateList(): Promise<void> {
 
   // 為新加入的元素添加事件監聽器
   attachEventListeners();
+
+  // 更新收藏按鈕的視覺狀態
+  updateAllBookmarkButtons();
 }
 
 /**
@@ -1150,6 +1255,9 @@ async function init(): Promise<void> {
 
   // 更新認證 UI
   updateAuthUI();
+
+  // 載入用戶收藏列表（步驟 19）
+  await loadUserBookmarks();
 
   // 短暫延遲後隱藏載入器，讓用戶看到完整準備好的頁面
   setTimeout(() => {
