@@ -29,6 +29,9 @@ let isLoadingMore = false;
 let currentSearch = '';
 let currentCategory = '';
 
+// 收藏篩選狀態
+let showOnlyBookmarked = false; // 是否只顯示已收藏的項目
+
 // 全屏載入器元素
 let appLoader: HTMLElement | null = null;
 let loaderMessage: HTMLElement | null = null;
@@ -447,6 +450,14 @@ async function handleBookmark(
       // 更新按鈕為未收藏狀態
       updateBookmarkButton(buttonElement, false);
       console.log('✅ 取消收藏成功:', result);
+
+      // 重新載入收藏列表以確保數據同步
+      await loadUserBookmarks();
+
+      // 如果開啟了「只看收藏」模式，重新渲染列表
+      if (showOnlyBookmarked) {
+        renderList();
+      }
     } else {
       // 添加收藏
       const result = await addBookmark(itemId);
@@ -461,6 +472,9 @@ async function handleBookmark(
       // 更新按鈕為已收藏狀態
       updateBookmarkButton(buttonElement, true);
       console.log('✅ 收藏成功:', result);
+
+      // 重新載入收藏列表以確保數據同步
+      await loadUserBookmarks();
     }
   } catch (error) {
     if (error instanceof ApiError) {
@@ -546,6 +560,152 @@ function updateAllBookmarkButtons(): void {
       updateBookmarkButton(button as HTMLElement, isBookmarked);
     }
   });
+}
+
+/**
+ * 切換收藏篩選模式
+ */
+async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
+  showOnlyBookmarked = enabled;
+
+  // 更新容器的 active 狀態
+  const container = document.getElementById('bookmarkFilterContainer');
+  if (container) {
+    if (enabled) {
+      container.classList.add('active');
+    } else {
+      container.classList.remove('active');
+    }
+  }
+
+  if (enabled) {
+    // 開啟「只看收藏」：調用 API 載入收藏的景點
+    console.log('✅ 切換到「只看收藏」模式，正在從 API 載入數據...');
+
+    if (!isLoggedIn()) {
+      await showError('請先登入才能查看收藏');
+      // 重置 toggle
+      const toggle = document.getElementById('bookmarkFilterToggle') as any;
+      if (toggle) {
+        toggle.checked = false;
+      }
+      showOnlyBookmarked = false;
+      if (container) {
+        container.classList.remove('active');
+      }
+      return;
+    }
+
+    try {
+      // 顯示加載狀態
+      showLoadingBar();
+      showListLoading();
+
+      // 1. 從 API 獲取收藏列表
+      const bookmarkResponse = await getBookmarks();
+      const bookmarkedIds = bookmarkResponse.item_ids;
+
+      console.log(`📋 用戶收藏了 ${bookmarkedIds.length} 個景點`);
+
+      if (bookmarkedIds.length === 0) {
+        // 沒有收藏任何景點
+        items = [];
+        hideListLoading();
+        hideLoadingBar();
+        renderList();
+        return;
+      }
+
+      // 2. 獲取所有收藏的景點詳細資料
+      // 由於 API 不支持批量 ID 查詢，需要分頁獲取直到找齊所有收藏的景點
+      const foundItems = new Map<number, any>(); // 使用 Map 避免重複
+      let page = 1;
+      const maxPages = 10; // 最多查詢 10 頁
+
+      console.log(`🔍 開始查詢 ${bookmarkedIds.length} 個收藏景點...`);
+
+      // 持續分頁獲取，直到找齊所有收藏的景點
+      while (foundItems.size < bookmarkedIds.length && page <= maxPages) {
+        console.log(`📄 獲取第 ${page} 頁...`);
+
+        const pageResponse = await fetchAttractions({
+          page: page,
+          limit: 20,
+        });
+
+        // 檢查這一頁中有哪些是收藏的景點
+        pageResponse.items.forEach((item) => {
+          if (bookmarkedIds.includes(item.id) && !foundItems.has(item.id)) {
+            foundItems.set(item.id, item);
+            console.log(`✅ 找到收藏 #${item.id}: ${item.title}`);
+          }
+        });
+
+        console.log(`📊 進度: ${foundItems.size}/${bookmarkedIds.length}`);
+
+        // 如果找齊了所有收藏的景點，停止查詢
+        if (foundItems.size >= bookmarkedIds.length) {
+          break;
+        }
+
+        // 如果這一頁沒有數據了，停止
+        if (pageResponse.items.length === 0) {
+          break;
+        }
+
+        page++;
+      }
+
+      if (foundItems.size < bookmarkedIds.length) {
+        console.warn(`⚠️ 只找到 ${foundItems.size}/${bookmarkedIds.length} 個`);
+      }
+
+      // 轉換為統一格式
+      items = Array.from(foundItems.values()).map(
+        (item) =>
+          ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            imageUrl: item.image_url,
+            videoUrl: item.video_url,
+            openingHours: item.opening_hours,
+            address: item.address,
+            city: item.city,
+            country: item.country,
+            tags: item.tags,
+            facilities: item.facilities,
+            name: item.title,
+            area: item.category,
+            openTime: item.opening_hours || '請查詢官方資訊',
+            feature: item.description,
+            image: item.image_url,
+            video: item.video_url,
+          }) as Attraction
+      );
+
+      console.log(
+        `✅ 成功載入 ${items.length} 個收藏景點（查詢了 ${page} 頁）`
+      );
+
+      hideListLoading();
+      hideLoadingBar();
+      renderList();
+    } catch (error) {
+      hideListLoading();
+      hideLoadingBar();
+      console.error('❌ 載入收藏景點失敗:', error);
+      await showError('載入收藏景點失敗，請稍後再試');
+    }
+  } else {
+    // 關閉「只看收藏」：返回正常搜索模式
+    console.log('✅ 返回顯示所有項目');
+
+    // 清空當前列表，顯示搜索提示
+    items = [];
+    showSearchPrompt();
+  }
 }
 
 /**
@@ -1245,7 +1405,15 @@ function renderList(): void {
   if (!list) return;
 
   list.innerHTML = '';
-  const filteredItems = items;
+
+  // 根據收藏篩選狀態過濾項目
+  let filteredItems = items;
+  if (showOnlyBookmarked && isLoggedIn()) {
+    filteredItems = items.filter((item) => {
+      const attraction = item as Attraction;
+      return bookmarkedItems.has(attraction.id);
+    });
+  }
 
   // 渲染景點
   filteredItems.forEach((item) => {
@@ -1341,12 +1509,35 @@ function renderList(): void {
   if (filteredItems.length === 0 && !isLoading) {
     const emptyItem = document.createElement('ion-item');
     emptyItem.className = 'empty-state';
-    emptyItem.innerHTML = `<div class="item-content" style="text-align:center; padding:1rem;">沒有找到符合條件的景點</div>`;
+
+    // 根據不同情況顯示不同的提示
+    let emptyMessage = '沒有找到符合條件的景點';
+
+    if (showOnlyBookmarked && items.length > 0) {
+      // 開啟了「只看收藏」但沒有收藏的景點
+      emptyMessage = `
+        <div style="text-align:center; padding:2rem;">
+          <ion-icon name="heart-outline" style="font-size: 3rem; color: #eb445a; margin-bottom: 1rem;"></ion-icon>
+          <p style="color: #666; margin: 0.5rem 0;">當前搜索結果中沒有已收藏的景點</p>
+          <p style="color: #999; font-size: 0.9rem;">試試關閉「只看收藏」開關</p>
+        </div>
+      `;
+    } else if (showOnlyBookmarked && items.length === 0) {
+      emptyMessage = `
+        <div style="text-align:center; padding:2rem;">
+          <ion-icon name="heart-outline" style="font-size: 3rem; color: #eb445a; margin-bottom: 1rem;"></ion-icon>
+          <p style="color: #666; margin: 0.5rem 0;">您還沒有收藏任何景點</p>
+          <p style="color: #999; font-size: 0.9rem;">試試搜索景點並點擊收藏按鈕</p>
+        </div>
+      `;
+    }
+
+    emptyItem.innerHTML = `<div class="item-content">${emptyMessage}</div>`;
     list.appendChild(emptyItem);
   }
 
-  // 添加「載入更多」按鈕（僅在使用 API 數據時顯示）
-  if (!useLocalData && filteredItems.length > 0) {
+  // 添加「載入更多」按鈕（僅在使用 API 數據且未開啟收藏篩選時顯示）
+  if (!useLocalData && filteredItems.length > 0 && !showOnlyBookmarked) {
     const loadMoreContainer = document.createElement('div');
     loadMoreContainer.className = 'load-more-container';
     loadMoreContainer.style.cssText = 'text-align:center; padding:1.5rem;';
@@ -1685,6 +1876,15 @@ function initEventListeners(): void {
   const categorySelect = document.querySelector('ion-select');
   if (categorySelect) {
     categorySelect.addEventListener('ionChange', () => updateList());
+  }
+
+  // 收藏篩選 Toggle 事件監聽
+  const bookmarkToggle = document.getElementById('bookmarkFilterToggle');
+  if (bookmarkToggle) {
+    bookmarkToggle.addEventListener('ionChange', (event: any) => {
+      const enabled = event.detail.checked;
+      toggleBookmarkFilter(enabled);
+    });
   }
 
   // 認證相關事件監聽
