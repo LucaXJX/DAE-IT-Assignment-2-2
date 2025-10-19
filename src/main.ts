@@ -11,6 +11,71 @@ import { fetchAttractions, ApiError } from './api';
 let items: (LocalAttraction | Attraction)[] = localAttractions;
 let isLoading = false;
 let useLocalData = true; // 控制使用本地數據還是 API 數據
+let currentPage = 1;
+let hasMoreData = true;
+let isLoadingMore = false;
+
+// 全屏載入器元素
+let appLoader: HTMLElement | null = null;
+let loaderMessage: HTMLElement | null = null;
+let retryInfo: HTMLElement | null = null;
+let retryText: HTMLElement | null = null;
+
+/**
+ * 初始化全屏載入器
+ */
+function initAppLoader(): void {
+  appLoader = document.getElementById('appLoader');
+  loaderMessage = document.getElementById('loaderMessage');
+  retryInfo = document.getElementById('retryInfo');
+  retryText = document.getElementById('retryText');
+}
+
+/**
+ * 更新載入器訊息
+ */
+function updateLoaderMessage(
+  message: string,
+  showRetry: boolean = false,
+  retryMessage: string = ''
+): void {
+  if (loaderMessage) {
+    loaderMessage.textContent = message;
+  }
+
+  if (retryInfo && retryText) {
+    if (showRetry) {
+      retryInfo.style.display = 'block';
+      retryText.textContent = retryMessage;
+    } else {
+      retryInfo.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * 隱藏載入器並顯示應用內容
+ */
+function hideAppLoader(): void {
+  const ionApp = document.querySelector('ion-app');
+
+  if (appLoader) {
+    // 添加淡出效果
+    appLoader.classList.add('hidden');
+
+    // 動畫完成後移除元素
+    setTimeout(() => {
+      if (appLoader && appLoader.parentNode) {
+        appLoader.parentNode.removeChild(appLoader);
+      }
+    }, 500);
+  }
+
+  if (ionApp) {
+    // 顯示主應用內容
+    ionApp.classList.add('loaded');
+  }
+}
 
 /**
  * 使用繁化姬 API 進行簡體到繁體轉換
@@ -59,32 +124,50 @@ function hideLoading(): void {
 }
 
 /**
- * 顯示錯誤訊息
+ * 顯示錯誤訊息（使用 ion-toast）
  */
-function showError(message: string): void {
-  const list = document.querySelector('ion-list');
-  if (!list) return;
+async function showError(
+  message: string,
+  duration: number = 3000
+): Promise<void> {
+  const toast = document.createElement('ion-toast') as any;
+  toast.message = message;
+  toast.duration = duration;
+  toast.color = 'danger';
+  toast.position = 'top';
+  toast.buttons = [
+    {
+      text: '關閉',
+      role: 'cancel',
+    },
+  ];
 
-  const errorItem = document.createElement('ion-item');
-  errorItem.className = 'list-item';
-  errorItem.style.cssText =
-    'background: #ffe6e6; border-left: 4px solid #ff4444;';
-  errorItem.innerHTML = `
-    <div class="item-content" style="padding:1rem;">
-      <ion-icon name="alert-circle" color="danger" style="font-size:2rem; margin-bottom:0.5rem;"></ion-icon>
-      <p style="color:#cc0000; font-weight:bold;">錯誤</p>
-      <p style="color:#666;">${message}</p>
-      <ion-button size="small" onclick="location.reload()" style="margin-top:1rem;">
-        重新載入
-      </ion-button>
-    </div>
-  `;
-  list.appendChild(errorItem);
+  document.body.appendChild(toast);
+  await toast.present();
+}
+
+/**
+ * 顯示成功訊息（使用 ion-toast）
+ */
+async function showSuccess(
+  message: string,
+  duration: number = 2000
+): Promise<void> {
+  const toast = document.createElement('ion-toast') as any;
+  toast.message = message;
+  toast.duration = duration;
+  toast.color = 'success';
+  toast.position = 'top';
+
+  document.body.appendChild(toast);
+  await toast.present();
 }
 
 /**
  * 從 API 載入景點資料
+ * @param options 查詢參數
  * @param showErrorUI 是否顯示錯誤 UI（初始化時設為 false）
+ * @param append 是否追加資料（用於分頁載入更多）
  */
 async function loadAttractionsFromAPI(
   options?: {
@@ -93,15 +176,18 @@ async function loadAttractionsFromAPI(
     search?: string;
     category?: string;
   },
-  showErrorUI: boolean = true
+  showErrorUI: boolean = true,
+  append: boolean = false
 ): Promise<void> {
   try {
-    showLoading();
+    if (!append) {
+      showLoading();
+    }
 
     const response = await fetchAttractions(options);
 
     // 將 API 資料轉換為本地格式以便顯示
-    items = response.items.map(
+    const newItems = response.items.map(
       (item) =>
         ({
           name: item.title,
@@ -120,7 +206,22 @@ async function loadAttractionsFromAPI(
         }) as any
     );
 
-    console.log('成功從 API 載入景點:', items.length, '個');
+    if (append) {
+      // 追加模式：合併新舊資料
+      items = [...items, ...newItems];
+      console.log('成功載入更多景點:', newItems.length, '個');
+
+      // 檢查是否還有更多資料
+      hasMoreData =
+        newItems.length > 0 && newItems.length === (options?.limit || 20);
+    } else {
+      // 替換模式：完全替換資料
+      items = newItems;
+      console.log('成功從 API 載入景點:', items.length, '個');
+      currentPage = options?.page || 1;
+      hasMoreData = true;
+    }
+
     useLocalData = false; // 標記為使用 API 數據
     hideLoading();
     updateList();
@@ -131,9 +232,9 @@ async function loadAttractionsFromAPI(
     // 根據參數決定是否顯示錯誤 UI
     if (showErrorUI) {
       if (error instanceof ApiError) {
-        showError(`無法載入景點資料：${error.message}`);
+        await showError(`無法載入景點資料：${error.message}`);
       } else {
-        showError('網路連接錯誤，請檢查您的網路連接');
+        await showError('網路連接錯誤，請檢查您的網路連接');
       }
     }
 
@@ -141,6 +242,7 @@ async function loadAttractionsFromAPI(
     if (items.length === 0 || useLocalData) {
       useLocalData = true;
       items = localAttractions;
+      hasMoreData = false;
       updateList();
     }
 
@@ -150,11 +252,57 @@ async function loadAttractionsFromAPI(
 }
 
 /**
- * 初始化分類選項（地區）
+ * 載入更多資料（分頁）
+ */
+async function loadMoreAttractions(): Promise<void> {
+  if (isLoadingMore || !hasMoreData || useLocalData) {
+    return;
+  }
+
+  try {
+    isLoadingMore = true;
+    currentPage++;
+
+    // 顯示載入按鈕的載入狀態
+    const loadMoreBtn = document.getElementById('loadMoreBtn') as any;
+    if (loadMoreBtn) {
+      loadMoreBtn.disabled = true;
+      const originalText = loadMoreBtn.textContent;
+      loadMoreBtn.innerHTML =
+        '<ion-spinner name="crescent"></ion-spinner> 載入中...';
+
+      await loadAttractionsFromAPI(
+        { page: currentPage, limit: 20 },
+        true, // 顯示錯誤 UI
+        true // 追加模式
+      );
+
+      loadMoreBtn.textContent = originalText;
+      loadMoreBtn.disabled = false;
+
+      await showSuccess(`成功載入第 ${currentPage} 頁資料`);
+    }
+  } catch (error) {
+    // 錯誤已在 loadAttractionsFromAPI 中處理
+    currentPage--; // 恢復頁碼
+    console.error('載入更多資料失敗:', error);
+  } finally {
+    isLoadingMore = false;
+  }
+}
+
+/**
+ * 初始化分類選項（地區/分類）
  */
 function populateCategories(): void {
   const categorySelect = document.querySelector('ion-select');
   if (!categorySelect) return;
+
+  // 更新選單標籤（根據數據來源）
+  const selectLabel = (categorySelect as any).label;
+  if (selectLabel !== undefined) {
+    (categorySelect as any).label = useLocalData ? '地區' : '分類';
+  }
 
   // 清空現有選項（保留"全部"選項）
   const allOptions = categorySelect.querySelectorAll('ion-select-option');
@@ -164,7 +312,7 @@ function populateCategories(): void {
     }
   });
 
-  // 取得所有唯一地區
+  // 取得所有唯一地區/分類
   const areas = Array.from(
     new Set(items.map((item) => item.area || (item as any).category))
   );
@@ -270,6 +418,10 @@ async function updateList(): Promise<void> {
 
     const listItem = document.createElement('ion-item');
     listItem.className = 'list-item';
+
+    // 根據數據來源決定標籤文字
+    const areaLabel = useLocalData ? '地區' : '分類';
+
     listItem.innerHTML = `
       <div class="item-content">
         <!-- 景點圖片 -->
@@ -281,14 +433,14 @@ async function updateList(): Promise<void> {
         </div>
         <!-- 景點名稱 -->
         <div class="item-title">${itemName}</div>
-        <!-- 地區 -->
-        <div class="item-subtitle">地區：${itemArea}</div>
+        <!-- 地區/分類 -->
+        <div class="item-subtitle">${areaLabel}：${itemArea}</div>
         <!-- 開放時間和特色 -->
         <div class="item-details">
           <p>開放時間：${itemOpenTime}</p>
           <p>特色：${itemFeature}</p>
         </div>
-        <!-- 標籤（地區）和影片按鈕 -->
+        <!-- 標籤（地區/分類）和影片按鈕 -->
         <div class="tag-container">
           <ion-chip size="small" data-area="${itemArea}">${itemArea}</ion-chip>
           ${
@@ -312,6 +464,30 @@ async function updateList(): Promise<void> {
     const emptyItem = document.createElement('ion-item');
     emptyItem.innerHTML = `<div class="item-content" style="text-align:center; padding:1rem;">沒有找到符合條件的景點</div>`;
     list.appendChild(emptyItem);
+  }
+
+  // 添加「載入更多」按鈕（僅在使用 API 數據時顯示）
+  if (!useLocalData && filteredItems.length > 0) {
+    const loadMoreContainer = document.createElement('div');
+    loadMoreContainer.style.cssText = 'text-align:center; padding:1.5rem;';
+
+    if (hasMoreData) {
+      loadMoreContainer.innerHTML = `
+        <ion-button id="loadMoreBtn" expand="block" fill="outline" style="max-width: 300px; margin: 0 auto;">
+          <ion-icon name="arrow-down-circle-outline" slot="start"></ion-icon>
+          載入更多
+        </ion-button>
+      `;
+    } else {
+      loadMoreContainer.innerHTML = `
+        <div style="color: #666; font-size: 0.9rem; padding: 1rem;">
+          <ion-icon name="checkmark-circle" style="font-size: 1.5rem; vertical-align: middle;"></ion-icon>
+          已載入全部資料（共 ${filteredItems.length} 個景點）
+        </div>
+      `;
+    }
+
+    list.appendChild(loadMoreContainer);
   }
 
   // 為新加入的元素添加事件監聽器
@@ -338,6 +514,12 @@ function attachEventListeners(): void {
       if (video && title) openVideoModal(video, title);
     });
   });
+
+  // 載入更多按鈕點擊事件
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', loadMoreAttractions);
+  }
 }
 
 /**
@@ -361,7 +543,20 @@ let chartInstance: any = null;
  * 繪製地區分佈圖表
  */
 function initAreaChart(): void {
-  // 統計每個地區的景點數量
+  // 更新圖表標題（根據數據來源）
+  const chartTitle = document
+    .querySelector('#areaChart')
+    ?.closest('ion-card')
+    ?.querySelector('ion-card-title');
+  if (chartTitle) {
+    if (useLocalData) {
+      chartTitle.textContent = '景點地區分佈（排名不分先後）';
+    } else {
+      chartTitle.textContent = '景點分類分佈（排名不分先後）';
+    }
+  }
+
+  // 統計每個地區/分類的景點數量
   const areaCount: { [key: string]: number } = {};
   items.forEach((item) => {
     const area = item.area || (item as any).category || '未知';
@@ -490,36 +685,62 @@ function initEventListeners(): void {
 async function init(): Promise<void> {
   console.log('=== 應用程式初始化 ===');
 
+  // 初始化全屏載入器
+  initAppLoader();
+
+  // 監聽 API 重試事件
+  window.addEventListener('api-retry', ((event: CustomEvent) => {
+    const { attempt, maxRetries, delayTime } = event.detail;
+    updateLoaderMessage(
+      '正在載入景點資料...',
+      true,
+      `第 ${attempt}/${maxRetries} 次嘗試失敗，${(delayTime / 1000).toFixed(1)} 秒後重試...`
+    );
+  }) as EventListener);
+
   // 初始化事件監聽器
   initEventListeners();
 
-  // 先顯示本地數據作為備用
-  items = localAttractions;
-  populateCategories();
-  initAreaChart();
-  updateList();
-
-  console.log('本地數據已載入（備用）');
+  // 更新載入訊息
+  updateLoaderMessage('正在連接到服務器...');
 
   // 嘗試從 API 載入數據
   console.log('正在嘗試從 API 載入景點資料...');
+  let apiSuccess = false;
+
   try {
     await loadAttractionsFromAPI({ page: 1, limit: 20 }, false); // 不顯示錯誤 UI
     console.log('✅ 成功從 API 載入數據');
-
-    // API 成功後重新初始化圖表和分類
-    try {
-      populateCategories();
-      initAreaChart();
-    } catch (chartError) {
-      console.warn('⚠️ 圖表初始化失敗（不影響功能）:', chartError);
-    }
+    apiSuccess = true;
+    updateLoaderMessage('資料載入成功，正在準備顯示...');
   } catch (error) {
-    console.log('⚠️ API 載入失敗，繼續使用本地數據');
-    console.log('💡 提示：可在控制台執行 loadAttractionsFromAPI() 重試');
+    console.log('⚠️ API 載入失敗，使用本地數據');
+    // API 失敗時使用本地數據
+    items = localAttractions;
+    useLocalData = true;
+    hasMoreData = false;
+    updateLoaderMessage('使用本地資料初始化...');
   }
 
-  console.log('初始化完成！');
+  // 初始化 UI 組件（無論 API 成功或失敗）
+  try {
+    populateCategories();
+    initAreaChart();
+    updateList();
+    console.log('UI 組件初始化完成');
+  } catch (uiError) {
+    console.error('⚠️ UI 初始化失敗:', uiError);
+  }
+
+  // 短暫延遲後隱藏載入器，讓用戶看到完整準備好的頁面
+  setTimeout(() => {
+    hideAppLoader();
+    console.log('✅ 初始化完成！');
+
+    if (!apiSuccess) {
+      console.log('💡 提示：可在控制台執行 loadAttractionsFromAPI() 重試');
+    }
+  }, 500);
 }
 
 // 當 DOM 載入完成後初始化
@@ -534,3 +755,4 @@ if (document.readyState === 'loading') {
 (window as any).closeVideoModal = closeVideoModal;
 (window as any).filterByArea = filterByArea;
 (window as any).loadAttractionsFromAPI = loadAttractionsFromAPI; // 導出供測試使用
+(window as any).loadMoreAttractions = loadMoreAttractions; // 導出供測試使用

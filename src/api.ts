@@ -91,6 +91,20 @@ export async function withRetry<T>(
         error instanceof Error ? error.message : error
       );
 
+      // 觸發自定義事件，通知 UI 層重試狀態
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('api-retry', {
+            detail: {
+              attempt: attempt + 1,
+              maxRetries: maxRetries + 1,
+              delayTime,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          })
+        );
+      }
+
       // 等待後重試
       await delay(delayTime);
     }
@@ -219,9 +233,9 @@ export async function fetchAttractions(options?: {
       }
     },
     {
-      maxRetries: 5, // 最多重試 5 次（總共嘗試 6 次）
-      initialDelay: 1000, // 第一次重試等待 1 秒
-      maxDelay: 5000, // 最多等待 5 秒
+      maxRetries: 15, // 最多重試 15 次（總共嘗試 16 次）
+      initialDelay: 500, // 每次重試等待 0.5 秒
+      maxDelay: 500, // 保持固定 0.5 秒（不使用指數退避）
     }
   );
 }
