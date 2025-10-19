@@ -713,7 +713,11 @@ async function loadAttractionsFromAPI(
 
     useLocalData = false; // 標記為使用 API 數據
     hideLoading();
-    updateList();
+
+    // 首次API調用成功後，填充分類選項
+    populateCategories();
+
+    renderList(); // 渲染列表而不是調用 updateList
   } catch (error) {
     hideLoading();
     console.error('載入 API 資料失敗:', error);
@@ -727,15 +731,7 @@ async function loadAttractionsFromAPI(
       }
     }
 
-    // 如果 API 失敗，確保使用本地數據
-    if (items.length === 0 || useLocalData) {
-      useLocalData = true;
-      items = localAttractions;
-      hasMoreData = false;
-      updateList();
-    }
-
-    // 重新拋出錯誤，讓調用者知道失敗了
+    // API 失敗時不回退到本地數據，直接拋出錯誤
     throw error;
   }
 }
@@ -857,46 +853,77 @@ function closeVideoModal(): void {
 }
 
 /**
- * 更新清單顯示
+ * 顯示列表加載動畫
  */
-async function updateList(): Promise<void> {
+function showListLoading(): void {
+  const list = document.querySelector('ion-list');
+  if (!list) return;
+
+  const loadingItem = document.createElement('div');
+  loadingItem.id = 'list-loading-indicator';
+  loadingItem.className = 'load-more-container';
+  loadingItem.style.cssText = 'text-align:center; padding:2rem;';
+  loadingItem.innerHTML = `
+    <ion-spinner name="crescent"></ion-spinner>
+    <p style="margin-top:1rem; color: #666;">正在搜尋...</p>
+  `;
+
+  // 插入到列表開頭
+  if (list.firstChild) {
+    list.insertBefore(loadingItem, list.firstChild);
+  } else {
+    list.appendChild(loadingItem);
+  }
+}
+
+/**
+ * 隱藏列表加載動畫
+ */
+function hideListLoading(): void {
+  const loadingIndicator = document.getElementById('list-loading-indicator');
+  if (loadingIndicator) {
+    loadingIndicator.remove();
+  }
+}
+
+/**
+ * 顯示搜索提示（初始狀態）
+ */
+function showSearchPrompt(): void {
   const list = document.querySelector('ion-list');
   if (!list) return;
 
   list.innerHTML = '';
 
-  // 取得搜尋和分類條件
-  const searchbar = document.querySelector('ion-searchbar') as any;
-  const categorySelect = document.querySelector('ion-select') as any;
-  const currentSearch = (searchbar?.value || '').trim().toLowerCase();
+  const promptItem = document.createElement('div');
+  promptItem.className = 'load-more-container';
+  promptItem.style.cssText = 'text-align:center; padding:3rem 1.5rem;';
+  promptItem.innerHTML = `
+    <ion-icon name="search-outline" style="font-size: 4rem; color: #667eea; margin-bottom: 1rem;"></ion-icon>
+    <h2 style="color: #2d3243; margin: 1rem 0;">開始探索景點</h2>
+    <p style="color: #666; font-size: 1rem; line-height: 1.6; max-width: 500px; margin: 0 auto;">
+      使用上方的搜尋框輸入關鍵字，或選擇分類來查看景點資料
+    </p>
+    <div style="margin-top: 2rem; padding: 1rem; background: #f0f4ff; border-radius: 0.5rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+      <ion-icon name="information-circle-outline" style="font-size: 1.5rem; color: #667eea; vertical-align: middle;"></ion-icon>
+      <span style="color: #667eea; margin-left: 0.5rem;">輸入景點名稱、地區或特色開始搜尋</span>
+    </div>
+  `;
 
-  // 將用戶輸入的簡體字轉換為繁體字
-  const currentSearchTrad = await simplifyToTraditional(currentSearch);
-  const currentArea = categorySelect?.value || '';
+  list.appendChild(promptItem);
+}
 
-  // 過濾資料
-  const filteredItems = items.filter((item) => {
-    const itemArea = item.area || (item as any).category || '';
-    const itemName = item.name || (item as any).title || '';
-    const itemFeature = item.feature || (item as any).description || '';
+/**
+ * 渲染清單（純粹的渲染函數，不包含搜索邏輯）
+ */
+function renderList(): void {
+  const list = document.querySelector('ion-list');
+  if (!list) return;
 
-    // 地區過濾
-    const matchArea = currentArea ? itemArea === currentArea : true;
+  list.innerHTML = '';
+  const filteredItems = items;
 
-    // 搜尋過濾
-    const matchSearch = currentSearch
-      ? itemName.toLowerCase().includes(currentSearch) ||
-        itemName.includes(currentSearchTrad) ||
-        itemArea.toLowerCase().includes(currentSearch) ||
-        itemArea.includes(currentSearchTrad) ||
-        itemFeature.toLowerCase().includes(currentSearch) ||
-        itemFeature.includes(currentSearchTrad)
-      : true;
-
-    return matchArea && matchSearch;
-  });
-
-  // 渲染過濾後的景點
+  // 渲染景點
   filteredItems.forEach((item) => {
     const attraction = item as Attraction;
     const itemName = item.name || attraction.title || '未命名';
@@ -1063,6 +1090,77 @@ function attachEventListeners(): void {
 }
 
 /**
+ * 防抖計時器
+ */
+let searchDebounceTimer: number | null = null;
+
+/**
+ * 更新清單顯示（判斷是否需要調用 API）
+ */
+async function updateList(): Promise<void> {
+  // 取得搜尋和分類條件
+  const searchbar = document.querySelector('ion-searchbar') as any;
+  const categorySelect = document.querySelector('ion-select') as any;
+  const currentSearch = (searchbar?.value || '').trim();
+  const currentCategory = categorySelect?.value || '';
+
+  // 判斷是否需要調用 API（有搜尋詞或有分類選擇）
+  const shouldCallAPI = currentSearch.length > 0 || currentCategory.length > 0;
+
+  if (shouldCallAPI) {
+    // 調用 API 搜尋
+    try {
+      // 顯示加載動畫
+      showListLoading();
+
+      // 重置分頁狀態
+      currentPage = 1;
+      hasMoreData = true;
+
+      // 調用 API
+      await loadAttractionsFromAPI(
+        {
+          page: 1,
+          limit: 20,
+          search: currentSearch || undefined,
+          category: currentCategory || undefined,
+        },
+        true, // 顯示錯誤
+        false // 不追加，替換資料
+      );
+
+      hideListLoading();
+    } catch (error) {
+      hideListLoading();
+      console.error('搜尋失敗:', error);
+      // 錯誤已在 loadAttractionsFromAPI 中處理
+    }
+  } else {
+    // 沒有搜尋條件，顯示搜索提示
+    items = [];
+    useLocalData = false;
+    hasMoreData = false;
+    showSearchPrompt();
+  }
+}
+
+/**
+ * 帶防抖的更新清單（用於搜尋框輸入）
+ */
+function updateListDebounced(): void {
+  // 清除之前的計時器
+  if (searchDebounceTimer !== null) {
+    window.clearTimeout(searchDebounceTimer);
+  }
+
+  // 設置新的計時器（500ms 延遲）
+  searchDebounceTimer = window.setTimeout(() => {
+    updateList();
+    searchDebounceTimer = null;
+  }, 500);
+}
+
+/**
  * 點擊標籤過濾（地區）
  */
 function filterByArea(area: string): void {
@@ -1206,13 +1304,13 @@ function initEventListeners(): void {
     });
   }
 
-  // 搜尋框事件監聽
+  // 搜尋框事件監聽（使用防抖）
   const searchbar = document.querySelector('ion-searchbar');
   if (searchbar) {
-    searchbar.addEventListener('ionInput', () => updateList());
+    searchbar.addEventListener('ionInput', () => updateListDebounced());
   }
 
-  // 分類選單事件監聽
+  // 分類選單事件監聽（不需要防抖，立即執行）
   const categorySelect = document.querySelector('ion-select');
   if (categorySelect) {
     categorySelect.addEventListener('ionChange', () => updateList());
@@ -1289,32 +1387,20 @@ async function init(): Promise<void> {
   initEventListeners();
 
   // 更新載入訊息
-  updateLoaderMessage('正在連接到服務器...');
+  updateLoaderMessage('正在初始化應用程式...');
 
-  // 嘗試從 API 載入數據
-  console.log('正在嘗試從 API 載入景點資料...');
-  let apiSuccess = false;
+  // 初始化為空狀態（完全不使用本地數據）
+  console.log('初始化應用程式（等待用戶搜索）');
+  items = [];
+  useLocalData = false;
+  hasMoreData = false;
 
+  // 初始化 UI 組件
   try {
-    await loadAttractionsFromAPI({ page: 1, limit: 20 }, false); // 不顯示錯誤 UI
-    console.log('✅ 成功從 API 載入數據');
-    apiSuccess = true;
-    updateLoaderMessage('資料載入成功，正在準備顯示...');
-  } catch (error) {
-    console.log('⚠️ API 載入失敗，使用本地數據');
-    // API 失敗時使用本地數據
-    items = localAttractions;
-    useLocalData = true;
-    hasMoreData = false;
-    updateLoaderMessage('使用本地資料初始化...');
-  }
-
-  // 初始化 UI 組件（無論 API 成功或失敗）
-  try {
-    populateCategories();
-    initAreaChart();
-    updateList();
-    console.log('UI 組件初始化完成');
+    // populateCategories(); // 先不初始化分類，等第一次API調用後再填充
+    // initAreaChart(); // 餅狀圖通過服務器API獲取
+    showSearchPrompt(); // 顯示搜索提示
+    console.log('✅ UI 組件初始化完成');
   } catch (uiError) {
     console.error('⚠️ UI 初始化失敗:', uiError);
   }
@@ -1352,11 +1438,7 @@ async function init(): Promise<void> {
   // 短暫延遲後隱藏載入器，讓用戶看到完整準備好的頁面
   setTimeout(() => {
     hideAppLoader();
-    console.log('✅ 初始化完成！');
-
-    if (!apiSuccess) {
-      console.log('💡 提示：可在控制台執行 loadAttractionsFromAPI() 重試');
-    }
+    console.log('✅ 初始化完成！使用搜尋功能來查詢 API 資料');
   }, 500);
 }
 
