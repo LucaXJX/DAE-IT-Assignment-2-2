@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 8080;
 // 設置靜態文件目錄（public 資料夾）
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 設置 dist 資料夾為靜態文件目錄（用於編譯後的 JS）
+app.use('/dist', express.static(path.join(__dirname, 'dist')));
+
 // 設置 CORS（允許跨域請求，方便開發）
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
