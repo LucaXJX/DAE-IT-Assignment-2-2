@@ -107,7 +107,7 @@
       }
 
       /* 響應式設計：針對不同螢幕尺寸的優化 */
-      
+
       /* 預設列表式佈局（手機） */
       ion-list {
         display: flex;
@@ -657,7 +657,7 @@
         <div style="padding: 16px">
           <ion-card>
             <ion-card-header>
-              <ion-card-title>景點地區分佈（排名不分先後）</ion-card-title>
+              <ion-card-title>景點類型（排名不分先後）</ion-card-title>
             </ion-card-header>
             <ion-card-content>
               <canvas id="areaChart" height="250"></canvas>
@@ -700,8 +700,8 @@
         <div class="auth-form-container" id="loginForm">
           <form id="loginFormElement">
             <!-- 錯誤提示區域 -->
-            <div class="auth-error" id="loginError" style="display: none;"></div>
-            
+            <div class="auth-error" id="loginError" style="display: none"></div>
+
             <div class="form-field">
               <label for="loginUsername" class="form-label">使用者名稱</label>
               <ion-input
@@ -735,8 +735,12 @@
         <div class="auth-form-container hidden" id="signupForm">
           <form id="signupFormElement">
             <!-- 錯誤提示區域 -->
-            <div class="auth-error" id="signupError" style="display: none;"></div>
-            
+            <div
+              class="auth-error"
+              id="signupError"
+              style="display: none"
+            ></div>
+
             <div class="form-field">
               <label for="signupUsername" class="form-label">使用者名稱</label>
               <ion-input
@@ -794,14 +798,19 @@
   <!-- 開發環境：過濾控制台噪音 -->
   <script>
     // 過濾 Chrome 擴展的錯誤消息（僅在開發環境）
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    ) {
       const originalError = console.error;
-      console.error = function(...args) {
+      console.error = function (...args) {
         const message = args.join(' ');
         // 忽略 Chrome 擴展的錯誤
-        if (message.includes('chrome-extension://') || 
-            message.includes('ERR_FILE_NOT_FOUND') ||
-            message.includes('completion_list.html')) {
+        if (
+          message.includes('chrome-extension://') ||
+          message.includes('ERR_FILE_NOT_FOUND') ||
+          message.includes('completion_list.html')
+        ) {
           return; // 不顯示這些錯誤
         }
         originalError.apply(console, args);

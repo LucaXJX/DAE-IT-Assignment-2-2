@@ -1178,36 +1178,34 @@ function filterByArea(area: string): void {
 let chartInstance: any = null;
 
 /**
- * 繪製地區分佈圖表
+ * 繪製地區分佈圖表（從服務器API獲取數據）
  */
-function initAreaChart(): void {
-  // 更新圖表標題（根據數據來源）
-  const chartTitle = document
-    .querySelector('#areaChart')
-    ?.closest('ion-card')
-    ?.querySelector('ion-card-title');
-  if (chartTitle) {
-    if (useLocalData) {
-      chartTitle.textContent = '景點地區分佈（排名不分先後）';
-    } else {
-      chartTitle.textContent = '景點分類分佈（排名不分先後）';
+async function initAreaChart(): Promise<void> {
+  try {
+    console.log('📊 正在從服務器獲取圖表數據...');
+    
+    // 調用服務器API獲取圖表數據
+    const response = await fetch('/api/chart-data');
+    
+    if (!response.ok) {
+      throw new Error(`獲取圖表數據失敗: ${response.status}`);
     }
-  }
-
-  // 統計每個地區/分類的景點數量
-  const areaCount: { [key: string]: number } = {};
-  items.forEach((item) => {
-    const area = item.area || (item as any).category || '未知';
-    if (areaCount[area]) {
-      areaCount[area]++;
-    } else {
-      areaCount[area] = 1;
+    
+    const chartData = await response.json();
+    console.log('✅ 成功獲取圖表數據:', chartData);
+    
+    // 更新圖表標題
+    const chartTitle = document
+      .querySelector('#areaChart')
+      ?.closest('ion-card')
+      ?.querySelector('ion-card-title');
+    if (chartTitle) {
+      chartTitle.textContent = `景點分類分佈（共 ${chartData.total} 個景點）`;
     }
-  });
 
-  // 準備圖表數據
-  const areas = Object.keys(areaCount);
-  const counts = Object.values(areaCount);
+    // 準備圖表數據
+    const areas = chartData.labels;
+    const counts = chartData.data;
 
   // 隨機生成顏色
   const backgroundColors = areas.map(
@@ -1280,7 +1278,25 @@ function initAreaChart(): void {
         },
       },
     });
-    console.log('圖表已初始化');
+    console.log('✅ 圖表已初始化');
+  }
+  } catch (error) {
+    console.error('❌ 初始化圖表失敗:', error);
+    
+    // 圖表初始化失敗時，顯示錯誤提示
+    const chartCard = document.querySelector('#areaChart')?.closest('ion-card');
+    if (chartCard) {
+      const cardContent = chartCard.querySelector('ion-card-content');
+      if (cardContent) {
+        cardContent.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #666;">
+            <ion-icon name="alert-circle-outline" style="font-size: 3rem; color: #eb445a;"></ion-icon>
+            <p style="margin-top: 1rem;">無法載入圖表數據</p>
+            <p style="font-size: 0.9rem;">請稍後再試</p>
+          </div>
+        `;
+      }
+    }
   }
 }
 
@@ -1398,7 +1414,7 @@ async function init(): Promise<void> {
   // 初始化 UI 組件
   try {
     // populateCategories(); // 先不初始化分類，等第一次API調用後再填充
-    // initAreaChart(); // 餅狀圖通過服務器API獲取
+    await initAreaChart(); // 餅狀圖通過服務器API獲取
     showSearchPrompt(); // 顯示搜索提示
     console.log('✅ UI 組件初始化完成');
   } catch (uiError) {
