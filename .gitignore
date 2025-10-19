@@ -1,7 +1,9 @@
 thumbs.db
 data*.txt
-node_modules
-dist
+node_modules/
+dist/
 package-lock.json
 pnpm-lock.yaml
 /backup*
+.DS_Store
+*.log

@@ -1,5 +1,5 @@
 {
-  "name": "dae-it-assignment-4",
+  "name": "dae-it-assignment-2-2",
   "version": "1.0.0",
   "description": "手機應用程式開發導論 - 習作二：API 整合與資料同步",
   "main": "dist/main.js",
@@ -25,4 +25,3 @@
     "ts-node-dev": "^2.0.0"
   }
 }
-
