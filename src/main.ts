@@ -582,6 +582,9 @@ async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
     // 開啟「只看收藏」：調用 API 載入收藏的景點
     console.log('✅ 切換到「只看收藏」模式，正在從 API 載入數據...');
 
+    // 停止預覽輪換，避免與收藏列表衝突
+    stopPreviewRotation();
+
     if (!isLoggedIn()) {
       await showError('請先登入才能查看收藏');
       // 重置 toggle
@@ -704,6 +707,12 @@ async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
 
     // 清空當前列表，顯示搜索提示
     items = [];
+
+    // 重新啟動預覽輪換（如果有預覽項目）
+    if (previewItems.length > 0) {
+      startPreviewRotation();
+    }
+
     showSearchPrompt();
   }
 }
@@ -1406,12 +1415,24 @@ function renderList(): void {
 
   list.innerHTML = '';
 
-  // 根據收藏篩選狀態過濾項目
+  // 根據收藏篩選狀態和分類過濾項目
   let filteredItems = items;
+
+  // 第一步：收藏篩選（如果開啟）
   if (showOnlyBookmarked && isLoggedIn()) {
     filteredItems = items.filter((item) => {
       const attraction = item as Attraction;
       return bookmarkedItems.has(attraction.id);
+    });
+  }
+
+  // 第二步：分類篩選（在收藏模式下也有效）
+  if (showOnlyBookmarked && currentCategory) {
+    console.log(`🔍 在收藏列表中篩選分類：${currentCategory}`);
+    filteredItems = filteredItems.filter((item) => {
+      const attraction = item as Attraction;
+      const itemCategory = attraction.category || attraction.area || '';
+      return itemCategory === currentCategory;
     });
   }
 
@@ -1633,6 +1654,14 @@ async function updateList(): Promise<void> {
   // 判斷是否需要調用 API（有搜尋詞或有分類選擇）
   const shouldCallAPI = currentSearch.length > 0 || currentCategory.length > 0;
 
+  // 如果開啟了「只看收藏」模式，只在收藏列表中進行前端篩選
+  if (showOnlyBookmarked && isLoggedIn()) {
+    console.log('🔒 已開啟「只看收藏」，在收藏列表中進行前端篩選');
+    // 直接重新渲染（renderList 會自動處理分類篩選）
+    renderList();
+    return;
+  }
+
   if (shouldCallAPI) {
     // 停止預覽輪換（用戶開始搜索）
     stopPreviewRotation();
@@ -1670,7 +1699,16 @@ async function updateList(): Promise<void> {
       // 錯誤已在 loadAttractionsFromAPI 中處理
     }
   } else {
-    // 沒有搜尋條件，顯示搜索提示
+    // 沒有搜尋條件
+
+    // 如果開啟了「只看收藏」，保持顯示收藏列表
+    if (showOnlyBookmarked && isLoggedIn()) {
+      console.log('🔄 分類已清空，但保持顯示收藏列表');
+      // 不做任何事，保持當前的收藏列表
+      return;
+    }
+
+    // 否則顯示搜索提示
     items = [];
     useLocalData = false;
     hasMoreData = false;
