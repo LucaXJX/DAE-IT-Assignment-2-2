@@ -1415,7 +1415,7 @@ function renderList(): void {
 
   list.innerHTML = '';
 
-  // 根據收藏篩選狀態和分類過濾項目
+  // 根據收藏篩選狀態和分類/搜索過濾項目
   let filteredItems = items;
 
   // 第一步：收藏篩選（如果開啟）
@@ -1433,6 +1433,33 @@ function renderList(): void {
       const attraction = item as Attraction;
       const itemCategory = attraction.category || attraction.area || '';
       return itemCategory === currentCategory;
+    });
+  }
+
+  // 第三步：搜索篩選（在收藏模式下也有效）
+  if (showOnlyBookmarked && currentSearch) {
+    console.log(`🔍 在收藏列表中搜索：${currentSearch}`);
+    const searchLower = currentSearch.toLowerCase();
+    filteredItems = filteredItems.filter((item) => {
+      const attraction = item as Attraction;
+      const itemName = (item.name || attraction.title || '').toLowerCase();
+      const itemArea = (item.area || attraction.category || '').toLowerCase();
+      const itemFeature = (
+        item.feature ||
+        attraction.description ||
+        ''
+      ).toLowerCase();
+      const itemCity = (attraction.city || '').toLowerCase();
+      const itemAddress = (attraction.address || '').toLowerCase();
+
+      // 在名稱、分類、描述、城市、地址中搜索
+      return (
+        itemName.includes(searchLower) ||
+        itemArea.includes(searchLower) ||
+        itemFeature.includes(searchLower) ||
+        itemCity.includes(searchLower) ||
+        itemAddress.includes(searchLower)
+      );
     });
   }
 
