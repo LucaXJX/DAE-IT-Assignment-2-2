@@ -89,6 +89,72 @@ function sanitizeUrl(url: string): string {
 }
 
 /**
+ * 驗證用戶名格式（只允許字母、數字和底線）
+ */
+function validateUsername(username: string): {
+  valid: boolean;
+  message: string;
+} {
+  if (!username || username.length < 3) {
+    return { valid: false, message: '使用者名稱至少需要 3 個字元' };
+  }
+
+  if (username.length > 20) {
+    return { valid: false, message: '使用者名稱最多 20 個字元' };
+  }
+
+  // 只允許字母、數字和底線
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+    return { valid: false, message: '使用者名稱只能包含字母、數字和底線' };
+  }
+
+  return { valid: true, message: '' };
+}
+
+/**
+ * 驗證密碼強度
+ */
+function validatePassword(password: string): {
+  valid: boolean;
+  message: string;
+  strength: 'weak' | 'medium' | 'strong';
+} {
+  if (!password || password.length < 6) {
+    return { valid: false, message: '密碼至少需要 6 個字元', strength: 'weak' };
+  }
+
+  if (password.length > 50) {
+    return { valid: false, message: '密碼最多 50 個字元', strength: 'weak' };
+  }
+
+  let strength: 'weak' | 'medium' | 'strong' = 'weak';
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+
+  const criteriaCount = [hasLower, hasUpper, hasNumber, hasSpecial].filter(
+    Boolean
+  ).length;
+
+  if (criteriaCount < 2) {
+    return {
+      valid: false,
+      message: '密碼需要包含至少兩種字符類型（大寫、小寫、數字、特殊字符）',
+      strength: 'weak',
+    };
+  }
+
+  if (criteriaCount === 2) {
+    strength = 'medium';
+  } else if (criteriaCount >= 3) {
+    strength = 'strong';
+  }
+
+  return { valid: true, message: '', strength };
+}
+
+/**
  * 初始化全屏載入器
  */
 function initAppLoader(): void {
@@ -314,13 +380,17 @@ async function handleSignup(event: Event): Promise<void> {
     return;
   }
 
-  if (username.length < 3) {
-    showFormError('signupError', '使用者名稱至少需要 3 個字元');
+  // 驗證用戶名格式
+  const usernameValidation = validateUsername(username);
+  if (!usernameValidation.valid) {
+    showFormError('signupError', usernameValidation.message);
     return;
   }
 
-  if (password.length < 6) {
-    showFormError('signupError', '密碼至少需要 6 個字元');
+  // 驗證密碼強度
+  const passwordValidation = validatePassword(password);
+  if (!passwordValidation.valid) {
+    showFormError('signupError', passwordValidation.message);
     return;
   }
 
@@ -1912,6 +1982,85 @@ async function initAreaChart(): Promise<void> {
 }
 
 /**
+ * 即時驗證用戶名
+ */
+function validateUsernameInput(): void {
+  const usernameInput = document.getElementById('signupUsername') as any;
+  const hint = document.getElementById('usernameHint');
+
+  if (!usernameInput || !hint) return;
+
+  const username = usernameInput.value?.trim() || '';
+
+  if (!username) {
+    hint.style.display = 'none';
+    return;
+  }
+
+  const validation = validateUsername(username);
+
+  if (validation.valid) {
+    hint.style.display = 'flex';
+    hint.className = 'validation-hint success';
+    hint.innerHTML = `
+      <ion-icon name="checkmark-circle"></ion-icon>
+      <span>使用者名稱格式正確</span>
+    `;
+  } else {
+    hint.style.display = 'flex';
+    hint.className = 'validation-hint error';
+    hint.innerHTML = `
+      <ion-icon name="alert-circle"></ion-icon>
+      <span>${validation.message}</span>
+    `;
+  }
+}
+
+/**
+ * 即時驗證密碼強度
+ */
+function validatePasswordInput(): void {
+  const passwordInput = document.getElementById('signupPassword') as any;
+  const hint = document.getElementById('passwordHint');
+  const strengthFill = document.getElementById('passwordStrengthFill');
+
+  if (!passwordInput || !hint || !strengthFill) return;
+
+  const password = passwordInput.value || '';
+
+  if (!password) {
+    hint.style.display = 'none';
+    strengthFill.style.width = '0';
+    strengthFill.className = 'password-strength-fill';
+    return;
+  }
+
+  const validation = validatePassword(password);
+
+  // 更新強度條
+  strengthFill.className = `password-strength-fill ${validation.strength}`;
+
+  if (validation.valid) {
+    hint.style.display = 'flex';
+    const strengthText = validation.strength === 'strong' ? '強' : '中等';
+    const strengthColor =
+      validation.strength === 'strong' ? 'success' : 'warning';
+    hint.className = `validation-hint ${strengthColor}`;
+    hint.innerHTML = `
+      <ion-icon name="shield-checkmark"></ion-icon>
+      <span>密碼強度：${strengthText}</span>
+    `;
+  } else {
+    hint.style.display = 'flex';
+    hint.className = 'validation-hint error';
+    hint.innerHTML = `
+      <ion-icon name="alert-circle"></ion-icon>
+      <span>${validation.message}</span>
+    `;
+  }
+}
+
+/**
  * 初始化事件監聽器
  */
 function initEventListeners(): void {
@@ -1987,6 +2136,20 @@ function initEventListeners(): void {
   const signupFormElement = document.getElementById('signupFormElement');
   if (signupFormElement) {
     signupFormElement.addEventListener('submit', handleSignup);
+  }
+
+  // 即時驗證：用戶名輸入
+  const signupUsername = document.getElementById('signupUsername');
+  if (signupUsername) {
+    signupUsername.addEventListener('ionInput', validateUsernameInput);
+    signupUsername.addEventListener('ionBlur', validateUsernameInput);
+  }
+
+  // 即時驗證：密碼輸入
+  const signupPassword = document.getElementById('signupPassword');
+  if (signupPassword) {
+    signupPassword.addEventListener('ionInput', validatePasswordInput);
+    signupPassword.addEventListener('ionBlur', validatePasswordInput);
   }
 
   // 點擊 Modal 外部關閉
