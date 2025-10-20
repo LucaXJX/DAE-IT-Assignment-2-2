@@ -16,6 +16,7 @@ import {
   removeBookmark,
   getBookmarks,
 } from './api';
+import { convertText } from './zhconvert';
 
 // 當前狀態
 let items: (LocalAttraction | Attraction)[] = localAttractions;
@@ -31,6 +32,7 @@ let currentCategory = '';
 
 // 收藏篩選狀態
 let showOnlyBookmarked = false; // 是否只顯示已收藏的項目
+let fullBookmarkedItems: (LocalAttraction | Attraction)[] = []; // 完整的收藏列表（用於繁簡搜索）
 
 // 全屏載入器元素
 let appLoader: HTMLElement | null = null;
@@ -47,6 +49,165 @@ let bookmarkedItems: Set<number> = new Set(); // 存儲已收藏的項目 ID
 // 預覽景點狀態
 let previewItems: Attraction[] = []; // 存儲預覽景點
 let previewRotationTimer: number | null = null; // 預覽景點輪換計時器
+
+// 繁簡轉換緩存（符合老師建議：統一轉簡體匹配）
+const simplifiedCache = new Map<string, string>();
+
+/**
+ * 將文字轉換為簡體（帶緩存）
+ * 符合老師建議：繁體/簡體/台灣繁體/香港繁體統一轉為簡體進行匹配
+ */
+async function toSimplified(text: string): Promise<string> {
+  if (!text) return '';
+
+  // 檢查緩存
+  if (simplifiedCache.has(text)) {
+    return simplifiedCache.get(text)!;
+  }
+
+  try {
+    // 調用繁化姬 API 轉換為簡體
+    const simplified = await convertText(text, 'China');
+
+    // 存入緩存
+    simplifiedCache.set(text, simplified);
+
+    return simplified;
+  } catch (error) {
+    console.warn('⚠️ 繁簡轉換失敗，使用原文:', error);
+    // 轉換失敗時使用原文
+    simplifiedCache.set(text, text);
+    return text;
+  }
+}
+
+/**
+ * 獲取景點的可搜索文本（合併所有可搜索字段）
+ */
+function getSearchableText(item: LocalAttraction | Attraction): string {
+  const attraction = item as Attraction;
+  return [
+    attraction.title || item.name || '',
+    attraction.category || item.area || '',
+    attraction.description || item.feature || '',
+    attraction.city || '',
+    attraction.address || '',
+  ].join(' ');
+}
+
+/**
+ * 執行繁簡通用搜索（通用版本）
+ * 符合老師建議：將輸入內容和檢索內容都轉為簡體進行匹配
+ * @param searchTerm 搜索詞
+ * @param sourceItems 要搜索的源數據列表
+ * @returns 匹配的項目列表
+ */
+async function performSimplifiedSearch(
+  searchTerm: string,
+  sourceItems: (LocalAttraction | Attraction)[]
+): Promise<(LocalAttraction | Attraction)[]> {
+  if (!searchTerm || sourceItems.length === 0) {
+    return sourceItems;
+  }
+
+  try {
+    console.log(`🔍 開始繁簡通用搜索：「${searchTerm}」`);
+    console.log(`📊 待搜索項目數量：${sourceItems.length}`);
+
+    // 1. 將搜索詞轉為簡體
+    const searchSimplified = (await toSimplified(searchTerm)).toLowerCase();
+    console.log(`   ✅ 搜索詞簡體：「${searchSimplified}」`);
+
+    // 2. 遍歷所有項目，將可搜索字段轉為簡體並匹配
+    const matchedItems: (LocalAttraction | Attraction)[] = [];
+    let processedCount = 0;
+
+    for (const item of sourceItems) {
+      processedCount++;
+
+      // 獲取可搜索文本
+      const searchableText = getSearchableText(item);
+
+      // 轉為簡體
+      const itemSimplified = (await toSimplified(searchableText)).toLowerCase();
+
+      // 調試：顯示前3個項目的轉換結果
+      if (processedCount <= 3) {
+        console.log(
+          `   📝 [${processedCount}] 原文：${searchableText.substring(0, 50)}...`
+        );
+        console.log(
+          `   📝 [${processedCount}] 簡體：${itemSimplified.substring(0, 50)}...`
+        );
+      }
+
+      // 簡體匹配簡體
+      if (itemSimplified.includes(searchSimplified)) {
+        matchedItems.push(item);
+        const attraction = item as Attraction;
+        console.log(`   ✅ 匹配: ${attraction.title || attraction.name}`);
+      }
+    }
+
+    console.log(
+      `   🎯 找到 ${matchedItems.length} 個匹配項（共 ${sourceItems.length} 項）`
+    );
+
+    return matchedItems;
+  } catch (error) {
+    console.error('❌ 繁簡搜索失敗:', error);
+    // 降級：返回所有項目
+    return sourceItems;
+  }
+}
+
+/**
+ * 在收藏模式下執行繁簡通用搜索（異步）
+ * 符合老師建議：將輸入內容和檢索內容都轉為簡體進行匹配
+ */
+async function performSimplifiedSearchInBookmarks(): Promise<void> {
+  if (
+    !showOnlyBookmarked ||
+    !currentSearch ||
+    fullBookmarkedItems.length === 0
+  ) {
+    console.warn('⚠️ 繁簡搜索條件不滿足:', {
+      showOnlyBookmarked,
+      currentSearch,
+      fullBookmarkedItemsCount: fullBookmarkedItems.length,
+    });
+    return;
+  }
+
+  try {
+    // 顯示加載提示
+    showListLoading();
+
+    // 調用通用繁簡搜索函數
+    const matchedItems = await performSimplifiedSearch(
+      currentSearch,
+      fullBookmarkedItems
+    );
+
+    hideListLoading();
+
+    // 更新列表並重新渲染
+    items = matchedItems;
+    renderList();
+
+    // 如果沒有結果，提示用戶
+    if (matchedItems.length === 0) {
+      await showError(`沒有找到包含「${currentSearch}」的收藏景點`);
+    }
+  } catch (error) {
+    hideListLoading();
+    console.error('❌ 繁簡搜索失敗:', error);
+    await showError('繁簡轉換失敗，請稍後再試');
+    // 降級：直接顯示所有收藏
+    items = fullBookmarkedItems;
+    renderList();
+  }
+}
 
 /**
  * HTML 轉義函數（防止 XSS 攻擊）
@@ -734,7 +895,7 @@ async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
       }
 
       // 轉換為統一格式
-      items = Array.from(foundItems.values()).map(
+      const bookmarkedAttractions = Array.from(foundItems.values()).map(
         (item) =>
           ({
             id: item.id,
@@ -758,6 +919,10 @@ async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
           }) as Attraction
       );
 
+      // 保存完整收藏列表（用於繁簡搜索）
+      fullBookmarkedItems = bookmarkedAttractions;
+      items = bookmarkedAttractions;
+
       console.log(
         `✅ 成功載入 ${items.length} 個收藏景點（查詢了 ${page} 頁）`
       );
@@ -775,8 +940,9 @@ async function toggleBookmarkFilter(enabled: boolean): Promise<void> {
     // 關閉「只看收藏」：返回正常搜索模式
     console.log('✅ 返回顯示所有項目');
 
-    // 清空當前列表，顯示搜索提示
+    // 清空當前列表和收藏緩存
     items = [];
+    fullBookmarkedItems = [];
 
     // 重新啟動預覽輪換（如果有預覽項目）
     if (previewItems.length > 0) {
@@ -1506,32 +1672,7 @@ function renderList(): void {
     });
   }
 
-  // 第三步：搜索篩選（在收藏模式下也有效）
-  if (showOnlyBookmarked && currentSearch) {
-    console.log(`🔍 在收藏列表中搜索：${currentSearch}`);
-    const searchLower = currentSearch.toLowerCase();
-    filteredItems = filteredItems.filter((item) => {
-      const attraction = item as Attraction;
-      const itemName = (item.name || attraction.title || '').toLowerCase();
-      const itemArea = (item.area || attraction.category || '').toLowerCase();
-      const itemFeature = (
-        item.feature ||
-        attraction.description ||
-        ''
-      ).toLowerCase();
-      const itemCity = (attraction.city || '').toLowerCase();
-      const itemAddress = (attraction.address || '').toLowerCase();
-
-      // 在名稱、分類、描述、城市、地址中搜索
-      return (
-        itemName.includes(searchLower) ||
-        itemArea.includes(searchLower) ||
-        itemFeature.includes(searchLower) ||
-        itemCity.includes(searchLower) ||
-        itemAddress.includes(searchLower)
-      );
-    });
-  }
+  // 第三步：搜索篩選已在 updateList 中通過 performSimplifiedSearchInBookmarks 處理
 
   // 渲染景點
   filteredItems.forEach((item) => {
@@ -1751,11 +1892,20 @@ async function updateList(): Promise<void> {
   // 判斷是否需要調用 API（有搜尋詞或有分類選擇）
   const shouldCallAPI = currentSearch.length > 0 || currentCategory.length > 0;
 
-  // 如果開啟了「只看收藏」模式，只在收藏列表中進行前端篩選
+  // 如果開啟了「只看收藏」模式，在收藏列表中進行繁簡通用篩選
   if (showOnlyBookmarked && isLoggedIn()) {
-    console.log('🔒 已開啟「只看收藏」，在收藏列表中進行前端篩選');
-    // 直接重新渲染（renderList 會自動處理分類篩選）
-    renderList();
+    console.log('🔒 已開啟「只看收藏」，在收藏列表中進行繁簡通用篩選');
+
+    // 如果有搜索詞，執行繁簡通用搜索
+    if (currentSearch) {
+      // 先恢復完整列表，再執行繁簡搜索
+      items = fullBookmarkedItems;
+      await performSimplifiedSearchInBookmarks();
+    } else {
+      // 沒有搜索詞，恢復完整收藏列表並重新渲染（renderList 會自動處理分類篩選）
+      items = fullBookmarkedItems;
+      renderList();
+    }
     return;
   }
 
