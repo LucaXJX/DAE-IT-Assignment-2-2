@@ -2161,7 +2161,7 @@ function validateUsernameInput(): void {
     hint.className = 'validation-hint error';
     hint.innerHTML = `
       <ion-icon name="alert-circle"></ion-icon>
-      <span>${validation.message}</span>
+      <span>${escapeHtml(validation.message)}</span>
     `;
   }
 }
@@ -2198,14 +2198,14 @@ function validatePasswordInput(): void {
     hint.className = `validation-hint ${strengthColor}`;
     hint.innerHTML = `
       <ion-icon name="shield-checkmark"></ion-icon>
-      <span>密碼強度：${strengthText}</span>
+      <span>密碼強度：${escapeHtml(strengthText)}</span>
     `;
   } else {
     hint.style.display = 'flex';
     hint.className = 'validation-hint error';
     hint.innerHTML = `
       <ion-icon name="alert-circle"></ion-icon>
-      <span>${validation.message}</span>
+      <span>${escapeHtml(validation.message)}</span>
     `;
   }
 }
